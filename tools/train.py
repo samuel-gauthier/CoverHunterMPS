@@ -4,7 +4,6 @@ import argparse
 import os
 import sys
 import time
-from argparse import RawTextHelpFormatter
 
 import torch
 from torch.utils.data import DataLoader
@@ -21,7 +20,7 @@ from src.utils import create_logger, get_hparams_as_string, load_hparams
 def _main() -> None:
     parser = argparse.ArgumentParser(
         description="Train: python3 -m tools.train model_dir",
-        formatter_class=RawTextHelpFormatter,
+        formatter_class=argparse.RawTextHelpFormatter,
     )
     parser.add_argument("model_dir")
     parser.add_argument(
@@ -52,28 +51,35 @@ def _main() -> None:
     run_id = args.runid
     first_eval = True if only_eval else first_eval
 
+    logger = create_logger()
     hp = load_hparams(os.path.join(model_dir, "config/hparams.yaml"))
     match hp["device"]:  # noqa requires python 3.10
         case "mps":
-            assert (
-                torch.backends.mps.is_available()
-            ), "You requested 'mps' device in your hyperparameters but you are not running on an Apple M-series chip or have not compiled PyTorch for MPS support."
+            if not torch.backends.mps.is_available():
+                logger.error(
+                    "You requested 'mps' device in your hyperparameters"
+                    "but you are not running on an Apple M-series chip or "
+                    "have not compiled PyTorch for MPS support."
+                )
+                sys.exit()
             device = torch.device("mps")
         case "cuda":
-            assert (
-                torch.cuda.is_available()
-            ), "You requested 'cuda' device in your hyperparameters but you do not have a CUDA-compatible GPU available."
+            if not torch.cuda.is_available():
+                logger.error(
+                    "You requested 'cuda' device in your hyperparameters"
+                    "but you do not have a CUDA-compatible GPU available."
+                )
+                sys.exit()
             device = torch.device("cuda")
         case _:
-            print(
-                "You set device: ",
-                hp["device"],
+            logger.error(
+                "You set device: %s"
                 " in your hyperparameters but that is not a valid option or is an untested option.",
+                 hp["device"]
             )
             sys.exit()
-    logger = create_logger()
 
-    logger.info(f"{get_hparams_as_string(hp)}")
+    logger.info("%s", get_hparams_as_string(hp))
 
     # Initialize variables for early stopping
     best_validation_loss = float("inf")
@@ -207,7 +213,7 @@ def _main() -> None:
         if not first_eval:
             start = time.time()
             train_step = None
-            logger.info(f"Start to train for epoch {epoch}")
+            logger.info("Start to train for epoch %d", epoch)
             step = train_one_epoch(
                 model,
                 optimizer,
@@ -222,12 +228,12 @@ def _main() -> None:
             if epoch % hp["every_n_epoch_to_save"] == 0:
                 save_checkpoint(model, optimizer, step, epoch, checkpoint_dir)
             logger.info(
-                f"Time for train epoch {epoch} step {step} is {time.time() - start:.1f}s\n",
+                "Time for train epoch %d step %d is %.1fs\n", epoch, step, time.time() - start
             )
 
         if train_sampler_loader and epoch % hp["every_n_epoch_to_dev"] == 0:
             start = time.time()
-            logger.info(f"compute train-sample at epoch-{epoch}")
+            logger.info("compute train-sample at epoch-%d", epoch)
 
             res = validate(
                 model,
@@ -239,18 +245,16 @@ def _main() -> None:
                 logger=logger,
             )
             logger.info(
-                "count:{}, avg_ce_loss:{}".format(
-                    res["count"], res["ce_loss"] / res["count"],
-                ),
+                "count:%d, avg_ce_loss:%d", res["count"], res["ce_loss"] / res["count"]
             )
 
             logger.info(
-                f"Time for train-sample is {time.time() - start:.1f}s\n",
+                "Time for train-sample is %.1fs\n", time.time() - start
             )
 
         if dev_loader and epoch % hp["every_n_epoch_to_dev"] == 0:
             start = time.time()
-            logger.info(f"compute dev at epoch-{epoch}")
+            logger.info("compute dev at epoch-%d", epoch)
             dev_res = validate(
                 model,
                 dev_loader,
@@ -263,9 +267,9 @@ def _main() -> None:
             validation_loss = dev_res["ce_loss"] / dev_res["count"]
 
             logger.info(
-                "count:{}, avg_ce_loss:{}".format(dev_res["count"], validation_loss),
+                "count:%s, avg_ce_loss:%s", dev_res["count"], validation_loss
             )
-            logger.info(f"Time for dev is {time.time() - start:.1f}s\n")
+            logger.info("Time for dev is %.1fs\n", time.time() - start)
 
             if validation_loss < best_validation_loss:
                 best_validation_loss = validation_loss
@@ -274,14 +278,14 @@ def _main() -> None:
                 early_stopping_counter += 1
 
         valid_testlist = []
-        for _test_idx, testset_name in enumerate(test_set_list):
+        for testset_name in test_set_list:
             hp_test = hp[testset_name]
             if epoch % hp_test["every_n_epoch_to_dev"] == 0:
                 valid_testlist.append(testset_name)
 
-        for _test_idx, testset_name in enumerate(valid_testlist):
+        for testset_name in valid_testlist:
             hp_test = hp[testset_name]
-            logger.info(f"Compute {testset_name} at epoch: {epoch}")
+            logger.info("Compute %s at epoch: %s", testset_name, epoch)
 
             start = time.time()
             save_name = hp_test.get("save_name", testset_name)
@@ -302,15 +306,16 @@ def _main() -> None:
             sw.add_scalar(f"mAP/{testset_name}", mean_ap, epoch)
             sw.add_scalar(f"hit_rate/{testset_name}", hit_rate, epoch)
             logger.info(
-                f"Test {testset_name}, hit_rate:{hit_rate}, map:{mean_ap}",
+                "Test %s, hit_rate:%s, map:%s", testset_name, hit_rate, mean_ap
             )
             logger.info(
-                f"Time for test-{testset_name} is {int(time.time() - start)} sec\n",
+                "Time for test-%s is %d sec\n", testset_name, int(time.time() - start)
             )
 
         if early_stopping_counter >= early_stopping_patience:
             logger.info(
-                f"Early stopping at epoch {epoch} due to lack of avg_ce_loss (focal aka cross-entropy loss) improvement.",
+                "Early stopping at epoch %d due to lack of avg_ce_loss"
+                "(focal aka cross-entropy loss) improvement.", epoch
             )
             break
 
