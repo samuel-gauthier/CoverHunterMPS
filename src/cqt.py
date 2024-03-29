@@ -29,8 +29,7 @@ def compute_cqt_with_librosa(signal=None, sr=16000, filename=None):
     if filename is not None:
         signal, _ = librosa.load(path=filename, sr=sr)
     cqt = np.abs(librosa.cqt(signal, sr=sr))
-    cqt_db = librosa.amplitude_to_db(cqt, ref=np.max)
-    return cqt_db
+    return librosa.amplitude_to_db(cqt, ref=np.max)
 
 
 class PyCqt:
@@ -47,7 +46,7 @@ class PyCqt:
         min_freq=32,
         max_freq=None,
         mps=False,
-    ):
+    ) -> None:
         self._hop_size = hop_size
         self._sample_rate = sample_rate
         if not max_freq:
@@ -271,8 +270,7 @@ class PyCqt:
         cqt_kernel = scipy.sparse.csr_matrix(cqt_kernel)
 
         # Get the final CQT kernel by using Parseval's theorem
-        cqt_kernel = np.conjugate(cqt_kernel) / fft_length
-        return cqt_kernel
+        return np.conjugate(cqt_kernel) / fft_length
 
     @staticmethod
     def _compute_cqt_spec(

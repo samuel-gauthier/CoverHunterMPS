@@ -7,8 +7,8 @@ import torch
 
 
 class Linear(torch.nn.Module):
-    def __init__(self, in_dim, out_dim, bias=True, w_init_gain="linear"):
-        super(Linear, self).__init__()
+    def __init__(self, in_dim, out_dim, bias=True, w_init_gain="linear") -> None:
+        super().__init__()
         self.linear_layer = torch.nn.Linear(in_dim, out_dim, bias=bias)
 
         torch.nn.init.xavier_uniform_(
@@ -30,8 +30,8 @@ class Conv1d(torch.nn.Module):
         dilation=1,
         bias=True,
         w_init_gain="linear",
-    ):
-        super(Conv1d, self).__init__()
+    ) -> None:
+        super().__init__()
         if padding is None:
             assert kernel_size % 2 == 1
             padding = int(dilation * (kernel_size - 1) / 2)
@@ -51,5 +51,4 @@ class Conv1d(torch.nn.Module):
         )
 
     def forward(self, signal):
-        conv_signal = self.conv(signal)
-        return conv_signal
+        return self.conv(signal)

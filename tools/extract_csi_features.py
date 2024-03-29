@@ -28,13 +28,13 @@ from src.utils import (
 )
 
 
-def _sort_lines_by_utt(init_path, sorted_path):
+def _sort_lines_by_utt(init_path, sorted_path) -> None:
     dump_lines = read_lines(init_path, log=False)
     dump_lines = sorted(dump_lines, key=lambda x: (line_to_dict(x)["utt"]))
     write_lines(sorted_path, dump_lines, log=True)
 
 
-def _remove_dup_line(init_path, new_path):
+def _remove_dup_line(init_path, new_path) -> None:
     logging.info("Remove line with same utt")
     old_line_num = len(read_lines(init_path, log=False))
     utt_set = set()
@@ -48,7 +48,7 @@ def _remove_dup_line(init_path, new_path):
     write_lines(new_path, valid_lines)
 
 
-def _remove_invalid_line(init_path, new_path):
+def _remove_invalid_line(init_path, new_path) -> None:
     old_line_num = len(read_lines(init_path, log=False))
     dump_lines = []
     for line in read_lines(init_path, log=False):
@@ -61,7 +61,7 @@ def _remove_invalid_line(init_path, new_path):
     write_lines(new_path, dump_lines)
 
 
-def _remove_line_with_same_dur(init_path, new_path):
+def _remove_line_with_same_dur(init_path, new_path) -> None:
     """remove line with same song-id and same dur-ms"""
     old_line_num = len(read_lines(init_path, log=False))
     dump_lines = []
@@ -119,7 +119,7 @@ def _speed_aug_worker(args):
     return line
 
 
-def _speed_aug_parallel(init_path, aug_speed_lst, aug_path, sp_dir):
+def _speed_aug_parallel(init_path, aug_speed_lst, aug_path, sp_dir) -> None:
     """add items with speed argument wav"""
     logging.info(f"speed factor: {aug_speed_lst}")
     os.makedirs(sp_dir, exist_ok=True)
@@ -165,7 +165,7 @@ def _extract_cqt_worker(args):
     return line
 
 
-def _extract_cqt_parallel(init_path, out_path, cqt_dir):
+def _extract_cqt_parallel(init_path, out_path, cqt_dir) -> None:
     logging.info("Extract CQT features")
     os.makedirs(cqt_dir, exist_ok=True)
     dump_lines = []
@@ -213,7 +213,7 @@ def _extract_cqt_workerMPS(args):
 
 ### experimental Torch-optimized MPS use for CQT ###
 ### not usable as of 21 Feb 2024 ###
-def _extract_cqt_parallelMPS(init_path, out_path, cqt_dir):
+def _extract_cqt_parallelMPS(init_path, out_path, cqt_dir) -> None:
     logging.info("Extract CQT features")
     assert (
         torch.backends.mps.is_available()
@@ -239,7 +239,7 @@ def _extract_cqt_parallelMPS(init_path, out_path, cqt_dir):
     write_lines(out_path, dump_lines)
 
 
-def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise):
+def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise) -> None:
     logging.info("Extract Cqt feature with noise argumentation")
     os.makedirs(cqt_dir, exist_ok=True)
 
@@ -267,7 +267,7 @@ def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise):
             np.save(local_data["feat"], cqt)
             local_data["feat_len"] = len(cqt)
 
-        if "feat_len" not in local_data.keys():
+        if "feat_len" not in local_data:
             cqt = np.load(local_data["feat"])
             local_data["feat_len"] = len(cqt)
 
@@ -283,7 +283,7 @@ def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise):
     write_lines(full_path, dump_lines)
 
 
-def _add_song_id(init_path, out_path, map_path=None):
+def _add_song_id(init_path, out_path, map_path=None) -> None:
     """map format:: song_name->song_id"""
     song_id_map = {}
     dump_lines = []
@@ -305,7 +305,7 @@ def _add_song_id(init_path, out_path, map_path=None):
 
 def _split_data_by_song_id(
     input_path, train_path, val_path, test_path, test_song_ids_path, hp,
-):
+) -> None:
     """
     Splits data into train and test sets based on song IDs using stratified sampling.
 
@@ -483,7 +483,7 @@ def _split_data_by_song_id(
 # =============================================================================
 
 
-def _clean_lines(full_path, clean_path):
+def _clean_lines(full_path, clean_path) -> None:
     dump_lines = []
     for line in read_lines(full_path):
         local_data = line_to_dict(line)
@@ -493,7 +493,7 @@ def _clean_lines(full_path, clean_path):
             "song": local_data["song"],
             "version_id": local_data["version_id"],
         }
-        if "feat" in local_data.keys():
+        if "feat" in local_data:
             clean_data.update(
                 {"feat_len": local_data["feat_len"], "feat": local_data["feat"]},
             )
@@ -505,7 +505,7 @@ def _clean_lines(full_path, clean_path):
     write_lines(clean_path, dump_lines)
 
 
-def _generate_csi_features(hp, feat_dir, start_stage, end_stage):
+def _generate_csi_features(hp, feat_dir, start_stage, end_stage) -> None:
     data_path = os.path.join(feat_dir, "dataset.txt")
     assert os.path.exists(data_path)
 
@@ -522,7 +522,7 @@ def _generate_csi_features(hp, feat_dir, start_stage, end_stage):
     sp_aug_path = os.path.join(feat_dir, "sp_aug.txt")
     if start_stage <= 3 <= end_stage:
         logging.info("Stage 3: speed augmentation")
-        if "aug_speed_mode" in hp.keys() and not os.path.exists(sp_aug_path):
+        if "aug_speed_mode" in hp and not os.path.exists(sp_aug_path):
             sp_dir = os.path.join(feat_dir, "sp_wav")
             #      _speed_aug(init_path, hp["aug_speed_mode"], sp_aug_path, sp_dir)
             _speed_aug_parallel(init_path, hp["aug_speed_mode"], sp_aug_path, sp_dir)
@@ -591,7 +591,7 @@ def _generate_csi_features(hp, feat_dir, start_stage, end_stage):
         )
 
 
-def _cmd():
+def _cmd() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("feat_dir", help="feat_dir")
     parser.add_argument("--start_stage", type=int, default=0)

@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import sys
 
 import torch
 
@@ -15,7 +16,7 @@ from src.utils import create_logger, get_hparams_as_string, load_hparams, read_l
 torch.backends.cudnn.benchmark = True
 
 
-def _main():
+def _main() -> None:
     parser = argparse.ArgumentParser(
         description="evaluate test-set with pretrained model",
     )
@@ -66,7 +67,7 @@ def _main():
                 hp["device"],
                 " in your hyperparameters but that is not a valid option.",
             )
-            exit()
+            sys.exit()
 
     torch.manual_seed(hp["seed"])
 

@@ -2,6 +2,7 @@
 
 import argparse
 import os
+import sys
 import time
 from argparse import RawTextHelpFormatter
 
@@ -17,7 +18,7 @@ from src.trainer import load_checkpoint, save_checkpoint, train_one_epoch, valid
 from src.utils import create_logger, get_hparams_as_string, load_hparams
 
 
-def _main():
+def _main() -> None:
     parser = argparse.ArgumentParser(
         description="Train: python3 -m tools.train model_dir",
         formatter_class=RawTextHelpFormatter,
@@ -69,7 +70,7 @@ def _main():
                 hp["device"],
                 " in your hyperparameters but that is not a valid option or is an untested option.",
             )
-            exit()
+            sys.exit()
     logger = create_logger()
 
     logger.info(f"{get_hparams_as_string(hp)}")
@@ -113,7 +114,7 @@ def _main():
     # At inference stage, we only use chunk with fixed length
     logger.info("Init train-sample and dev data loader")
     infer_len = hp["chunk_frame"][0] * hp["mean_size"]
-    if "train_sample_path" in hp.keys():
+    if "train_sample_path" in hp:
         # hp["batch_size"] = 1
         dataset = AudioFeatDataset(
             hp,
@@ -144,7 +145,7 @@ def _main():
     else:
         train_sampler_loader = None
 
-    if "dev_path" in hp.keys():
+    if "dev_path" in hp:
         dataset = AudioFeatDataset(
             hp, hp["dev_path"], chunk_len=infer_len, mode=hp["mode"], logger=(logger),
         )
@@ -181,7 +182,7 @@ def _main():
     # test_set_list stores whichever members of all_test_set_list are listed in hparams.yaml
     # default CoverHunter only included "covers80"
     all_test_set_list = ["covers80", "shs_test", "dacaos", "hymf_20", "hymf_100"]
-    test_set_list = [d for d in all_test_set_list if d in hp.keys()]
+    test_set_list = [d for d in all_test_set_list if d in hp]
 
     model = Model(hp).to(device)
     checkpoint_dir = os.path.join(model_dir, "pt_model")
@@ -273,12 +274,12 @@ def _main():
                 early_stopping_counter += 1
 
         valid_testlist = []
-        for test_idx, testset_name in enumerate(test_set_list):
+        for _test_idx, testset_name in enumerate(test_set_list):
             hp_test = hp[testset_name]
             if epoch % hp_test["every_n_epoch_to_dev"] == 0:
                 valid_testlist.append(testset_name)
 
-        for test_idx, testset_name in enumerate(valid_testlist):
+        for _test_idx, testset_name in enumerate(valid_testlist):
             hp_test = hp[testset_name]
             logger.info(f"Compute {testset_name} at epoch: {epoch}")
 

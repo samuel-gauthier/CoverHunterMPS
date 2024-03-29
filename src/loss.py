@@ -4,7 +4,7 @@
 # software: PyCharm
 
 import logging
-from typing import List
+from typing import List, Optional
 
 import torch
 import torch.nn.functional as F
@@ -26,8 +26,8 @@ class CenterLoss(nn.Module):
     assumes a GPU device is available
     """
 
-    def __init__(self, num_classes=10, feat_dim=2, device="mps"):
-        super(CenterLoss, self).__init__()
+    def __init__(self, num_classes=10, feat_dim=2, device="mps") -> None:
+        super().__init__()
         self.num_classes = num_classes
         self.feat_dim = feat_dim
         self.device = device
@@ -62,9 +62,8 @@ class CenterLoss(nn.Module):
         mask = labels.eq(classes.expand(batch_size, self.num_classes))
 
         dist = distmat * mask.float()
-        loss = dist.clamp(min=1e-12, max=1e12).sum() / batch_size
+        return dist.clamp(min=1e-12, max=1e12).sum() / batch_size
 
-        return loss
 
 
 # @typechecked
@@ -74,14 +73,15 @@ class FocalLoss(nn.Module):
     def __init__(
         self,
         gamma: float = 2.0,
-        alpha: List = None,
+        alpha: Optional[List] = None,
         num_cls: int = -1,
         reduction: str = "mean",
         device="mps",
-    ):
-        super(FocalLoss, self).__init__()
+    ) -> None:
+        super().__init__()
         if reduction not in ["mean", "sum"]:
-            raise NotImplementedError(f"Reduction {reduction} not implemented.")
+            msg = f"Reduction {reduction} not implemented."
+            raise NotImplementedError(msg)
         self._reduction = reduction
         self._alpha = alpha
         self._gamma = gamma
@@ -137,11 +137,11 @@ class HardTripletLoss(nn.Module):
     For each anchor, we get the hardest positive and hardest negative to form a triplet.
     """
 
-    def __init__(self, margin=0.1):
+    def __init__(self, margin=0.1) -> None:
         """Args:
         margin: margin for triplet loss
         """
-        super(HardTripletLoss, self).__init__()
+        super().__init__()
         self._margin = margin
 
     def forward(self, embeddings, labels):
@@ -169,8 +169,7 @@ class HardTripletLoss(nn.Module):
         triplet_loss = F.relu(
             hardest_positive_dist - hardest_negative_dist + self._margin,
         )
-        triplet_loss = torch.mean(triplet_loss)
-        return triplet_loss
+        return torch.mean(triplet_loss)
 
     @staticmethod
     def _pairwise_distance(x, squared=False, eps=1e-16):
@@ -197,12 +196,10 @@ class HardTripletLoss(nn.Module):
         device = labels.device
         indices_not_equal = torch.eye(labels.shape[0]).to(device).byte() ^ 1
         labels_equal = torch.unsqueeze(labels, 0) == torch.unsqueeze(labels, 1)
-        mask = indices_not_equal * labels_equal
-        return mask
+        return indices_not_equal * labels_equal
 
     @staticmethod
     def _get_anchor_negative_triplet_mask(labels):
         """Return a 2D mask where mask[a, n] is True iff a and n have distinct labels."""
         labels_equal = torch.unsqueeze(labels, 0) == torch.unsqueeze(labels, 1)
-        mask = labels_equal ^ 1
-        return mask
+        return labels_equal ^ 1

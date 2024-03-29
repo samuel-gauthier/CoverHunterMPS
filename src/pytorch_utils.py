@@ -12,7 +12,7 @@ import torch
 # TODO: clean
 
 
-def init_weights(m, mean=0.0, std=0.01):
+def init_weights(m, mean=0.0, std=0.01) -> None:
     """init weights with normal_"""
     classname = m.__class__.__name__
     if classname.find("Conv") != -1:
@@ -58,17 +58,17 @@ def get_model_with_epoch(hdf5_dir, prefix, model_epoch):
         if name.startswith(prefix):
             local_epoch = int(name.replace("-", ".").replace("_", ".").split(".")[1])
             if local_epoch == model_epoch:
-                model_path = os.path.join(hdf5_dir, name)
-                return model_path
+                return os.path.join(hdf5_dir, name)
     return None
 
 
 def get_lr(optimizer):
     for param_group in optimizer.param_groups:
         return param_group["lr"]
+    return None
 
 
-def average_model(model_path_list, new_model_path):
+def average_model(model_path_list, new_model_path) -> None:
     print(model_path_list)
     avg = None
     num = len(model_path_list)
@@ -78,11 +78,11 @@ def average_model(model_path_list, new_model_path):
         if avg is None:
             avg = states
         else:
-            for k in avg.keys():
+            for k in avg:
                 avg[k] += states[k]
 
     # average
-    for k in avg.keys():
+    for k in avg:
         if avg[k] is not None:
             avg[k] = torch.true_divide(avg[k], num)
 

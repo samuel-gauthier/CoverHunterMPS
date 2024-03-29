@@ -13,7 +13,7 @@ from src.pytorch_utils import get_lr, scan_and_load_checkpoint
 torch.backends.cudnn.benchmark = True
 
 
-def save_checkpoint(model, optimizer, step, epoch, checkpoint_dir):
+def save_checkpoint(model, optimizer, step, epoch, checkpoint_dir) -> None:
     g_checkpoint_path = f"{checkpoint_dir}/g_{epoch:08d}"
 
     if isinstance(model, torch.nn.DataParallel):
@@ -40,12 +40,12 @@ def load_checkpoint(model, optimizer=None, checkpoint_dir=None, advanced=False):
         if advanced:
             model_dict = model.state_dict()
             valid_dict = {
-                k: v for k, v in state_dict_g.items() if k in model_dict.keys()
+                k: v for k, v in state_dict_g.items() if k in model_dict
             }
             model_dict.update(valid_dict)
             model.load_state_dict(model_dict)
-            for k in model_dict.keys():
-                if k not in state_dict_g.keys():
+            for k in model_dict:
+                if k not in state_dict_g:
                     logging.warning(f"{k} not be initialized")
         else:
             model.load_state_dict(state_dict_g["generator"])
@@ -80,7 +80,7 @@ def train_one_epoch(
     model_context = nullcontext
     init_step = step
     model.train()  # torch.nn.Module.train sets model in training mode
-    idx_loader = [i for i in range(len(train_loader_lst))]
+    idx_loader = list(range(len(train_loader_lst)))
     with model_context():
         for batch_lst in zip(*train_loader_lst):
             random.shuffle(idx_loader)
@@ -174,7 +174,7 @@ def _calc_label(model, query_loader):
     query_label = {}
     query_pred = {}
     with torch.no_grad():
-        for j, batch in enumerate(query_loader):
+        for _j, batch in enumerate(query_loader):
             utt_b, anchor_b, label_b = batch
             anchor_b = batch[1].float().to(model.device)
             label_b = batch[2].long().to(model.device)
@@ -201,11 +201,11 @@ def _calc_label(model, query_loader):
                     query_pred[utt] = []
                 query_pred[utt].append((pred_label, prob))
 
-    query_utt_label = sorted(list(query_label.items()))
+    query_utt_label = sorted(query_label.items())
     return query_utt_label, query_pred
 
 
-def _syn_pred_label(model, valid_loader, valid_name, sw=None, epoch_num=-1):
+def _syn_pred_label(model, valid_loader, valid_name, sw=None, epoch_num=-1) -> None:
     model.eval()
 
     query_utt_label, query_pred = _calc_label(model, valid_loader)

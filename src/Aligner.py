@@ -12,9 +12,9 @@ from src.utils import dict_to_line, line_to_dict, read_lines, write_lines
 
 
 class Aligner:
-    def __init__(self, embed_dir):
+    def __init__(self, embed_dir) -> None:
         self._embed_dir = embed_dir
-        self._memory_data = dict()
+        self._memory_data = {}
         for name in os.listdir(embed_dir):
             data_path = os.path.join(embed_dir, name)
             embed = np.load(data_path)
@@ -28,14 +28,14 @@ class Aligner:
         if utt_i == utt_j:
             return 0
 
-        idx_npy_i = dict()
+        idx_npy_i = {}
         for k, v in self._memory_data.items():
             if utt_i in k:
                 idx_i = int(k.split("▁start-")[1])
                 #         # assumes '▁start-' never occurs in an utt code
                 idx_npy_i[idx_i] = v
 
-        idx_npy_j = dict()
+        idx_npy_j = {}
         for k, v in self._memory_data.items():
             if k.startswith(utt_j):
                 idx_j = int(k.split("▁start-")[1])
@@ -52,7 +52,7 @@ class Aligner:
             nearest_j = all_distance[0][0]
             res.append((idx_i, nearest_j, idx_i - nearest_j))
 
-        count_delta = dict()
+        count_delta = {}
         for _, _, z in res:
             if z not in count_delta:
                 count_delta[z] = 0
@@ -62,7 +62,7 @@ class Aligner:
         shift_frame, _ = count_delta_lst[0]
         return shift_frame
 
-    def align(self, data_path, output_path):
+    def align(self, data_path, output_path) -> None:
         dump_lines = []
         data_lines = read_lines(data_path)
         for line_i in data_lines:

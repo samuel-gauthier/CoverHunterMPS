@@ -21,8 +21,8 @@ from src.utils import (
 
 
 def _cluster_plot(
-    dist_matrix, ref_labels, output_path, test_only_labels=[], logger=None,
-):
+    dist_matrix, ref_labels, output_path, test_only_labels=None, logger=None,
+) -> None:
     """
     Generate t-SNE clustering PNG plot.
 
@@ -37,6 +37,8 @@ def _cluster_plot(
     import matplotlib.pyplot as plt
     from sklearn.manifold import TSNE
 
+    if test_only_labels is None:
+        test_only_labels = []
     model = TSNE(
         n_components=2, init="random", random_state=0,
     )  # Adjust parameters as needed
@@ -123,7 +125,7 @@ def _calc_embed(model, query_loader, device, saved_dir=None):
     query_embed = {}
     with torch.no_grad():
 
-        for j, batch in enumerate(query_loader):
+        for _j, batch in enumerate(query_loader):
             utt_b, feat_b, label_b = batch
             feat_b = batch[1].float().to(device)
             label_b = batch[2].long().to(device)
@@ -149,7 +151,7 @@ def _calc_embed(model, query_loader, device, saved_dir=None):
                 if saved_dir:
                     saved_path = os.path.join(saved_dir, f"{utt}.npy")
                     np.save(saved_path, embed)
-    query_utt_label = sorted(list(query_label.items()))
+    query_utt_label = sorted(query_label.items())
     return query_utt_label, query_embed
 
 
@@ -262,7 +264,7 @@ def _cut_one_line_with_dur(line, window_length_s, window_shift_s, hop_size=0.04)
     """
     local_data = line_to_dict(line)
     utt = local_data["utt"]
-    if "dur_s" in local_data.keys():
+    if "dur_s" in local_data:
         dur_s = local_data["dur_s"]
     else:
         dur_s = local_data["dur_ms"] / 1000
@@ -317,7 +319,7 @@ def eval_for_map_with_feat(
     logger=None,
     plot_name="",
     dist_name="",
-    test_only_labels=[],
+    test_only_labels=None,
 ):
     """compute map10 with trained model and query/ref loader(dataset loader
     can speed up process dramatically)
@@ -344,6 +346,8 @@ def eval_for_map_with_feat(
       rank1
 
     """
+    if test_only_labels is None:
+        test_only_labels = []
     if logger:
         logger.info("=" * 40)
         logger.info("Start to Eval")

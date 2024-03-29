@@ -21,8 +21,7 @@ random.seed(1)
 
 def _float_signal_to_int16(signal):
     signal = signal * 32768
-    signal = np.int16(signal)
-    return signal
+    return np.int16(signal)
 
 
 class SignalAug:
@@ -33,15 +32,15 @@ class SignalAug:
       output will be numpy.array float[0, 1]
     """
 
-    def __init__(self, hp):
+    def __init__(self, hp) -> None:
         self._hp = hp
-        if "add_noise" in self._hp.keys():
+        if "add_noise" in self._hp:
             self._noise_path_lst = read_lines(hp["add_noise"]["noise_path"], log=False)
             logging.info("Noise Data path:{}".format(hp["add_noise"]["noise_path"]))
             logging.info(f"Noise Data items:{len(self._noise_path_lst)}")
         else:
             self._noise_path_lst = None
-        if "seed" not in hp.keys():
+        if "seed" not in hp:
             hp["seed"] = 1234
         random.seed(hp["seed"])
         np.random.seed(hp["seed"])
@@ -81,8 +80,7 @@ class SignalAug:
         snr = 10 ** (snr / 10.0)
         coef = np.sqrt(1 / snr)
         new_signal = signal + noise * coef
-        new_signal = new_signal / max(0.001, np.max(np.abs(new_signal))) * 0.95
-        return new_signal
+        return new_signal / max(0.001, np.max(np.abs(new_signal))) * 0.95
 
     @staticmethod
     def _change_tempo(signal, coef):
@@ -184,8 +182,7 @@ class SignalAug:
         status = process_handle.returncode
         if status > 0:
             logging.info("status:{}, err:{}".format(status, err.decode("utf-8")))
-        signal = out
-        return signal
+        return out
 
     @staticmethod
     def _change_pitch(signal, pitch_factor):
@@ -238,30 +235,29 @@ class SignalAug:
         if process_handle.returncode != 0:
             return signal
 
-        out = np.frombuffer(out, dtype=np.int16)
+        return np.frombuffer(out, dtype=np.int16)
         # print("status:", status)
         # print("err:", err.decode("utf-8"))
-        return out
 
     def augmentation(self, signal):
         """vanilla signal[N] -> augmentation signal[N]"""
         signal = signal.astype(float)
-        if "speed" in self._hp.keys():
+        if "speed" in self._hp:
             if random.random() <= self._hp["speed"]["prob"]:
                 coef = random.choice(self._hp["speed"]["coef"])
                 signal = self._change_speed(signal, coef)
 
-        if "tempo" in self._hp.keys():
+        if "tempo" in self._hp:
             if random.random() <= self._hp["tempo"]["prob"]:
                 coef = random.choice(self._hp["tempo"]["coef"])
                 signal = self._change_tempo(signal, coef)
 
-        if "pitch" in self._hp.keys():
+        if "pitch" in self._hp:
             if random.random() <= self._hp["pitch"]["prob"]:
                 coef = random.choice(self._hp["pitch"]["shift"])
                 signal = self._change_pitch(signal, coef)
 
-        if "add_noise" in self._hp.keys() and self._hp["add_noise"]["prob"] > 0.01:
+        if "add_noise" in self._hp and self._hp["add_noise"]["prob"] > 0.01:
             hp_noise = self._hp["add_noise"]
             noise_data = line_to_dict(random.choice(self._noise_path_lst))
             noise_sig_init, _ = librosa.load(noise_data["wav"], sr=hp_noise["sr"])
@@ -280,7 +276,7 @@ class SignalAug:
             snr = random.choice([-30, -20, -10, 0, 10])
             signal = self._add_noise(signal, noise=to_add_noise, snr=snr)
 
-        if "volume" in self._hp.keys():
+        if "volume" in self._hp:
             if random.random() <= self._hp["volume"]["prob"]:
                 coef = random.random()
                 signal = self._change_volume(signal, coef)
@@ -290,9 +286,9 @@ class SignalAug:
 class SpecAug:
     """Spec Augmentation(Do not change data shape)"""
 
-    def __init__(self, hp=None, logger=None):
+    def __init__(self, hp=None, logger=None) -> None:
         self._hp = hp
-        if "seed" not in hp.keys():
+        if "seed" not in hp:
             hp["seed"] = 1234
         random.seed(hp["seed"])
         np.random.seed(hp["seed"])
@@ -353,12 +349,12 @@ class SpecAug:
 
     def augmentation(self, feat):
         """vanilla feature[80 x N] -> augmentation feature[80 x N]"""
-        if "roll_pitch" in self._hp.keys():
+        if "roll_pitch" in self._hp:
             p = random.random()
             if p <= self._hp["roll_pitch"]["prob"]:
                 feat = self._roll(feat, shift_num=self._hp["roll_pitch"]["shift_num"])
 
-        if "random_erase" in self._hp.keys():
+        if "random_erase" in self._hp:
             p = random.random()
             if p <= self._hp["random_erase"]["prob"]:
                 feat = self._random_erase(
@@ -389,7 +385,7 @@ class AudioFeatDataset(torch.utils.data.Dataset):
         mode="random",
         chunk_len=None,
         logger=None,
-    ):
+    ) -> None:
 
         if data_path:
             data_lines = read_lines(data_path, log=False)
@@ -414,7 +410,7 @@ class AudioFeatDataset(torch.utils.data.Dataset):
         elif mode == "defined":
             for line in data_lines:
                 local_data = line_to_dict(line)
-                if "start" not in local_data.keys():
+                if "start" not in local_data:
                     local_data["start"] = 0
                 self._data.append(
                     (
@@ -426,7 +422,8 @@ class AudioFeatDataset(torch.utils.data.Dataset):
                     ),
                 )
         else:
-            raise Exception("invalid mode".format())
+            msg = "invalid mode".format()
+            raise Exception(msg)
 
         if logger:
             logger.info(
@@ -436,7 +433,7 @@ class AudioFeatDataset(torch.utils.data.Dataset):
                 f"Input dataset items: {len(data_lines)}, valid items: {self.__len__()}",
             )
 
-        if train and "spec_augmentation" in hp.keys():
+        if train and "spec_augmentation" in hp:
             self._aug = SpecAug(hp["spec_augmentation"], logger)
         else:
             self._aug = None
@@ -444,7 +441,7 @@ class AudioFeatDataset(torch.utils.data.Dataset):
                 logger.info("No spec_augmentation!")
 
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._data)
 
     def __getitem__(self, idx):
@@ -459,7 +456,8 @@ class AudioFeatDataset(torch.utils.data.Dataset):
         elif self._mode == "defined":
             utt, label, feat_path, start, chunk_len = self._data[idx]
         else:
-            raise Exception("invalid mode".format())
+            msg = "invalid mode".format()
+            raise Exception(msg)
 
         feat = np.load(feat_path)
         feat = feat[start : start + chunk_len]
@@ -495,7 +493,7 @@ class MPerClassSampler(Sampler):
       to make sure every ranks has not override data.
     """
 
-    def __init__(self, data_path, m, batch_size, distribute=False, logger=None):
+    def __init__(self, data_path, m, batch_size, distribute=False, logger=None) -> None:
         data_lines = read_lines(data_path, log=False)
 
         self._m_per_class = m
@@ -543,7 +541,7 @@ class MPerClassSampler(Sampler):
 
     def _split_label_randoms(self, seed):
         split_label = []
-        global_label = [x for x in self._labels_to_indices.keys()].copy()
+        global_label = list(self._labels_to_indices.keys()).copy()
         random.Random(seed).shuffle(global_label)
         split_label.append(global_label)
 
@@ -573,5 +571,5 @@ class MPerClassSampler(Sampler):
             labels_to_indices[k] = expand_indices.copy()
         return labels_to_indices
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self._sample_length

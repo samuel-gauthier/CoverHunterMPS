@@ -13,8 +13,8 @@ from src.pytorch_utils import get_latest_model, get_model_with_epoch
 
 
 class BasicModel(torch.nn.Module):
-    def __init__(self, hp):
-        super(BasicModel, self).__init__()
+    def __init__(self, hp) -> None:
+        super().__init__()
         self._hp = hp
         self._epoch = 0
         self._step = 0
@@ -34,12 +34,12 @@ class BasicModel(torch.nn.Module):
         if advanced:
             model_dict = self.state_dict()
             valid_dict = {
-                k: v for k, v in state_dict_g.items() if k in model_dict.keys()
+                k: v for k, v in state_dict_g.items() if k in model_dict
             }
             model_dict.update(valid_dict)
             self.load_state_dict(model_dict)
-            for k in model_dict.keys():
-                if k not in state_dict_g.keys():
+            for k in model_dict:
+                if k not in state_dict_g:
                     logging.warning(f"{k} not be initialized")
         else:
             self.load_state_dict(state_dict_g)
@@ -51,7 +51,7 @@ class BasicModel(torch.nn.Module):
         )
         return self._epoch
 
-    def save_model_parameters(self, g_checkpoint_path):
+    def save_model_parameters(self, g_checkpoint_path) -> None:
         torch.save({"generator": self.state_dict()}, g_checkpoint_path)
 
     def get_epoch_num(self):
@@ -82,10 +82,9 @@ class BasicModel(torch.nn.Module):
         return self._hp["ce"]["output_dims"]
 
     def model_size(self) -> int:
-        num = sum(p.numel() for p in self.parameters())
-        return num
+        return sum(p.numel() for p in self.parameters())
 
-    def dump_torch_script(self, dump_path):
+    def dump_torch_script(self, dump_path) -> None:
         script_model = torch.jit.script(self)
         script_model.save(dump_path)
         logging.info(f"Export model successfully, see {dump_path}")

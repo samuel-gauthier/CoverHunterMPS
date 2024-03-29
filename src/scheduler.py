@@ -23,11 +23,11 @@ class UserDefineExponentialLR(torch.optim.lr_scheduler._LRScheduler):
 
     def __init__(
         self, optimizer, gamma, min_lr, last_epoch=-1, warmup=False, warmup_steps=5000,
-    ):
+    ) -> None:
         self.gamma = gamma
         self.min_lr = min_lr
         self._warmup = warmup
-        super(UserDefineExponentialLR, self).__init__(optimizer, last_epoch)
+        super().__init__(optimizer, last_epoch)
 
         if warmup:
             print(f"Using Warmup for Learning: {warmup_steps}")

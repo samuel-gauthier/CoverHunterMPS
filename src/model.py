@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 import logging
+import sys
 from typing import Dict, Optional, Tuple
 
 import numpy as np
@@ -26,7 +27,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         The number of output channels.
     """
 
-    def __init__(self, channels, output_channels):
+    def __init__(self, channels, output_channels) -> None:
         super().__init__()
 
         self._eps = 1e-12
@@ -70,8 +71,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         attn = attn.masked_fill(mask == 0, float("-inf"))  # Filter out zero-padding
         attn = F.softmax(attn, dim=2)
         mean, std = self._compute_statistics(x, attn, self._eps)
-        pooled_stats = self._final_layer(torch.cat((mean, std), dim=1))
-        return pooled_stats
+        return self._final_layer(torch.cat((mean, std), dim=1))
 
     def forward_with_mask(
         self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None,
@@ -116,8 +116,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         mean, std = self._compute_statistics(x, attn, self._eps)
         # Append mean and std of the batch
         pooled_stats = torch.cat((mean, std), dim=1)
-        pooled_stats = pooled_stats.unsqueeze(2)
-        return pooled_stats
+        return pooled_stats.unsqueeze(2)
 
     @staticmethod
     def length_to_mask(
@@ -161,8 +160,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         if device is None:
             device = length.device
 
-        mask = torch.as_tensor(mask, dtype=dtype, device=device)
-        return mask
+        return torch.as_tensor(mask, dtype=dtype, device=device)
 
 
 class Model(BasicModel):
@@ -180,7 +178,7 @@ class Model(BasicModel):
       hp: Dict with all parameters
     """
 
-    def __init__(self, hp: Dict):
+    def __init__(self, hp: Dict) -> None:
         super(BasicModel, self).__init__()
         self._hp = hp
         self._global_cmvn = torch.nn.BatchNorm1d(hp["input_dim"])
@@ -210,7 +208,7 @@ class Model(BasicModel):
         )
 
         # Loss. CoverHunter doesn't use alpha
-        if "alpha" in hp["ce"].keys():
+        if "alpha" in hp["ce"]:
             alpha = np.load(hp["ce"]["alpha"])
             alpha = 1.0 / (alpha + 1)
             alpha = alpha / np.sum(alpha)
@@ -248,8 +246,7 @@ class Model(BasicModel):
             .long()
         )
         x, _ = self._encoder(x, xs_lens=xs_lens, decoding_chunk_size=-1)
-        x = self._pool_layer(x)
-        return x
+        return self._pool_layer(x)
 
     #  @torch.jit.ignore
     def compute_loss(
@@ -290,11 +287,10 @@ class Model(BasicModel):
     @torch.jit.export
     def compute_embed(self, feat: torch.Tensor) -> torch.Tensor:
         with torch.no_grad():
-            embed = self.forward(feat)
-        return embed
+            return self.forward(feat)
 
 
-def _test_model():
+def _test_model() -> None:
     hp_path = "src/hparams.yaml"
     hp = load_hparams(hp_path)
     match hp["device"]:
@@ -314,7 +310,7 @@ def _test_model():
                 hp["device"],
                 " in your hyperparameters but that is not a valid option.",
             )
-            exit()
+            sys.exit()
     model = Model(hp).float().to(device)
     batch_size = 4
     feat_size = hp["input_dim"]

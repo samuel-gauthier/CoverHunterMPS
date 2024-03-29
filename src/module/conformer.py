@@ -154,8 +154,7 @@ def make_pad_mask(lengths: torch.Tensor, max_len: int = 0) -> torch.Tensor:
     seq_range = torch.arange(0, max_len, dtype=torch.int64, device=lengths.device)
     seq_range_expand = seq_range.unsqueeze(0).expand(batch_size, max_len)
     seq_length_expand = lengths.unsqueeze(-1)
-    mask = seq_range_expand >= seq_length_expand
-    return mask
+    return seq_range_expand >= seq_length_expand
 
 
 class Swish(torch.nn.Module):
@@ -197,7 +196,7 @@ class PositionalEncoding(torch.nn.Module):
         dropout_rate: float,
         max_len: int = 5000,
         reverse: bool = False,
-    ):
+    ) -> None:
         """Construct an PositionalEncoding object."""
         super().__init__()
         self.d_model = d_model
@@ -285,7 +284,7 @@ class RelPositionalEncoding(PositionalEncoding):
         max_len (int): Maximum input length.
     """
 
-    def __init__(self, d_model: int, dropout_rate: float, max_len: int = 5000):
+    def __init__(self, d_model: int, dropout_rate: float, max_len: int = 5000) -> None:
         """Initialize class."""
         super().__init__(d_model, dropout_rate, max_len, reverse=True)
 
@@ -308,7 +307,7 @@ class RelPositionalEncoding(PositionalEncoding):
 class NoPositionalEncoding(torch.nn.Module):
     """No position encoding"""
 
-    def __init__(self, d_model: int, dropout_rate: float):
+    def __init__(self, d_model: int, dropout_rate: float) -> None:
         super().__init__()
         self.d_model = d_model
         self.dropout = torch.nn.Dropout(p=dropout_rate)
@@ -328,7 +327,7 @@ class NoPositionalEncoding(torch.nn.Module):
 
 # # *** Subsample *** # #
 class BaseSubsampling(torch.nn.Module):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.right_context = 0
         self.subsampling_rate = 1
@@ -351,7 +350,7 @@ class LinearNoSubsampling(BaseSubsampling):
 
     def __init__(
         self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module,
-    ):
+    ) -> None:
         """Construct an linear object."""
         super().__init__()
         self.out = torch.nn.Sequential(
@@ -399,7 +398,7 @@ class Conv2dSubsampling4(BaseSubsampling):
 
     def __init__(
         self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module,
-    ):
+    ) -> None:
         """Construct an Conv2dSubsampling4 object."""
         super().__init__()
         self.conv = torch.nn.Sequential(
@@ -458,7 +457,7 @@ class Conv2dSubsampling8(BaseSubsampling):
 
     def __init__(
         self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module,
-    ):
+    ) -> None:
         """Construct an Conv2dSubsampling8 object."""
         super().__init__()
         self.conv = torch.nn.Sequential(
@@ -515,7 +514,7 @@ class MultiHeadedAttention(nn.Module):
 
     """
 
-    def __init__(self, n_head: int, n_feat: int, dropout_rate: float):
+    def __init__(self, n_head: int, n_feat: int, dropout_rate: float) -> None:
         """Construct an MultiHeadedAttention object."""
         super().__init__()
         assert n_feat % n_head == 0
@@ -683,7 +682,7 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         dropout_rate (float): Dropout rate.
     """
 
-    def __init__(self, n_head, n_feat, dropout_rate):
+    def __init__(self, n_head, n_feat, dropout_rate) -> None:
         """Construct an RelPositionMultiHeadedAttention object."""
         super().__init__(n_head, n_feat, dropout_rate)
         # linear transformation for positional encoding
@@ -815,7 +814,7 @@ class ConvolutionModule(nn.Module):
         norm: str = "batch_norm",
         causal: bool = False,
         bias: bool = True,
-    ):
+    ) -> None:
         """Construct an ConvolutionModule object.
         Args:
             channels (int): The number of channels of conv layers.
@@ -950,9 +949,9 @@ class PositionwiseFeedForward(torch.nn.Module):
         hidden_units: int,
         dropout_rate: float,
         activation: torch.nn.Module = torch.nn.ReLU(),
-    ):
+    ) -> None:
         """Construct a PositionwiseFeedForward object."""
-        super(PositionwiseFeedForward, self).__init__()
+        super().__init__()
         self.w_1 = torch.nn.Linear(idim, hidden_units)
         self.activation = activation
         self.dropout = torch.nn.Dropout(dropout_rate)
@@ -1004,7 +1003,7 @@ class ConformerEncoderLayer(torch.nn.Module):
         dropout_rate: float = 0.1,
         normalize_before: bool = True,
         concat_after: bool = False,
-    ):
+    ) -> None:
         """Construct an EncoderLayer object."""
         super().__init__()
         self.self_attn = self_attn
@@ -1142,7 +1141,7 @@ class ConformerEncoder(torch.nn.Module):
         cnn_module_kernel: int = 15,
         causal: bool = False,
         cnn_module_norm: str = "batch_norm",
-    ):
+    ) -> None:
         """
         Args:
             input_size (int): input dim
@@ -1473,7 +1472,7 @@ class ConformerEncoder(torch.nn.Module):
         return ys, masks
 
 
-def _test_model():
+def _test_model() -> None:
     device = torch.device("mps")
     model = ConformerEncoder(input_size=128, output_size=128, linear_units=128).to(
         device,

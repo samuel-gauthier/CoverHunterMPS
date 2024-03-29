@@ -42,7 +42,7 @@ def read_lines(data_path, log=True):
     return lines
 
 
-def write_lines(data_path, lines, log=True):
+def write_lines(data_path, lines, log=True) -> None:
     """write lines to txt path.
 
     Args:
@@ -59,7 +59,8 @@ def write_lines(data_path, lines, log=True):
         print(f"example(last line): {lines[-1]}\n")
 
     if len(lines) == 0:
-        raise Exception(f"Fails to write blank to {data_path}")
+        msg = f"Fails to write blank to {data_path}"
+        raise Exception(msg)
 
     with open(data_path, "w", encoding="utf-8") as fw:
         for line in lines:
@@ -100,8 +101,7 @@ def dict_to_line(data_dict):
       List
 
     """
-    line = json.dumps(data_dict, ensure_ascii=False)
-    return line
+    return json.dumps(data_dict, ensure_ascii=False)
 
 
 def read_bin_to_numpy(data_path, data_type="float"):
@@ -123,13 +123,14 @@ def read_bin_to_numpy(data_path, data_type="float"):
         elif data_type == "int":
             mat = np.fromfile(fr, dtype=np.int32)
         else:
-            raise Exception("Unvalid type")
+            msg = "Unvalid type"
+            raise Exception(msg)
 
     assert np.size(mat) == frms * dim, f"{np.size(mat)}!={frms}x{dim}\ndata path:{data_path}"
     return np.reshape(mat, [frms, dim])
 
 
-def dump_numpy_to_bin(data, data_path, data_type="float"):
+def dump_numpy_to_bin(data, data_path, data_type="float") -> None:
     """dump numpy to bin file, and data will be changed to float32
 
     Args:
@@ -145,7 +146,8 @@ def dump_numpy_to_bin(data, data_path, data_type="float"):
     elif data_type == "int":
         data = data.astype(np.int32)
     else:
-        raise Exception("Unvalid type")
+        msg = "Unvalid type"
+        raise Exception(msg)
 
     if np.ndim(data) == 1:
         data = np.resize(data, [1, np.size(data)])
@@ -187,7 +189,7 @@ def load_map(map_path, key_as_int=False, value_as_int=False, split_label=" "):
 
 
 # ==================== file utils ====================
-def clean_and_new_dir(data_dir):
+def clean_and_new_dir(data_dir) -> None:
     """clean all files in dir
 
     Args:
@@ -239,13 +241,11 @@ def get_name_from_path(abs_path):
 def get_wav_path_from_dir(wav_dir):
     """get all wav path in the input-dir"""
     path_list = []
-    for root, dirs, files in os.walk(wav_dir):
+    for root, _dirs, files in os.walk(wav_dir):
         for name in files:
             wav_path = os.path.join(root, name)
             if (
-                wav_path.endswith("mp3")
-                or wav_path.endswith("wav")
-                or wav_path.endswith("mp4")
+                wav_path.endswith(("mp3", "wav", "mp4"))
             ):
                 path_list.append(wav_path)
     return sorted(path_list)
@@ -264,19 +264,17 @@ def remake_path_for_linux(path):
 
 
 def create_logger():
-    logger = logging.getLogger()
-    return logger
+    return logging.getLogger()
 
 
 # ==================== hparams utils ====================
 def load_hparams(yaml_path):
     """load hparams from yaml path as dict"""
     with open(yaml_path, encoding="utf-8") as yaml_file:
-        hparams = yaml.safe_load(yaml_file)
-    return hparams
+        return yaml.safe_load(yaml_file)
 
 
-def dump_hparams(yaml_path, hparams):
+def dump_hparams(yaml_path, hparams) -> None:
     """dump dict to yaml path
 
     Args:
@@ -301,16 +299,12 @@ def get_hparams_as_string(hparams):
       string
 
     """
-    json_str = json.dumps(hparams, indent=2, separators=(",", ": "))
-    return json_str
+    return json.dumps(hparams, indent=2, separators=(",", ": "))
 
 
 # ==================== wave utils ====================
-def save_wav(wav, path, sr, k=None):
-    if k:
-        norm_wav = wav * 32767 / max(0.01, np.max(np.abs(wav))) * k
-    else:
-        norm_wav = wav * 32767
+def save_wav(wav, path, sr, k=None) -> None:
+    norm_wav = wav * 32767 / max(0.01, np.max(np.abs(wav))) * k if k else wav * 32767
     wavfile.write(path, sr, norm_wav.astype(np.int16))
 
 

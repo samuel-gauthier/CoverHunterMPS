@@ -49,7 +49,7 @@ def calc_map(
         row = sorted(row, key=lambda x: x[1])
         per_top10, per_rank1, per_map = 0, 0, 0
         version_cnt = 0.0
-        for k, (v, val) in enumerate(row):
+        for k, (v, _val) in enumerate(row):
             if k >= topk:
                 continue
             if label_query[u] == label_ref[v]:
@@ -62,7 +62,7 @@ def calc_map(
                     per_top10 += 1
 
         if per_rank1 == 0:
-            for k, (v, val) in enumerate(row):
+            for k, (v, _val) in enumerate(row):
                 if label_query[u] == label_ref[v]:
                     if per_rank1 == 0:
                         per_rank1 = k + 1

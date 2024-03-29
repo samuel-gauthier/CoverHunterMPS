@@ -5,6 +5,7 @@
 
 import argparse
 import os
+import sys
 
 import torch
 
@@ -16,7 +17,7 @@ from src.utils import create_logger, get_hparams_as_string, load_hparams
 torch.backends.cudnn.benchmark = True
 
 
-def _main():
+def _main() -> None:
     parser = argparse.ArgumentParser(description="alignment with coarse trained model")
     parser.add_argument("model_dir", help="coarse trained dir")
     parser.add_argument("data_path", help="input file contains init data")
@@ -49,7 +50,7 @@ def _main():
                 hp["device"],
                 " in your hyperparameters but that is not a valid option.",
             )
-            exit()
+            sys.exit()
 
     # Note: we need to change chunks to 15s
     hp["chunk_frame"] = [125]
