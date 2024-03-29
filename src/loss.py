@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2022/7/15 12:36 PM
 # software: PyCharm
 
 import logging
 from typing import List
+
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
+from torch import nn
 
 # from typeguard import typechecked
 
@@ -32,12 +32,11 @@ class CenterLoss(nn.Module):
         self.feat_dim = feat_dim
         self.device = device
         self.centers = nn.Parameter(
-            torch.randn(self.num_classes, self.feat_dim).float().to(device)
+            torch.randn(self.num_classes, self.feat_dim).float().to(device),
         )
         logging.info(
-            "CenterLoss: num_classes({}), feat_dim({})".format(num_classes, feat_dim)
+            f"CenterLoss: num_classes({num_classes}), feat_dim({feat_dim})",
         )
-        return
 
     def forward(self, x, labels):
         """
@@ -82,17 +81,16 @@ class FocalLoss(nn.Module):
     ):
         super(FocalLoss, self).__init__()
         if reduction not in ["mean", "sum"]:
-            raise NotImplementedError("Reduction {} not implemented.".format(reduction))
+            raise NotImplementedError(f"Reduction {reduction} not implemented.")
         self._reduction = reduction
         self._alpha = alpha
         self._gamma = gamma
         if alpha is not None:
-            assert len(alpha) <= num_cls, "{} != {}".format(len(alpha), num_cls)
+            assert len(alpha) <= num_cls, f"{len(alpha)} != {num_cls}"
             self._alpha = torch.tensor(self._alpha)
         self._eps = torch.finfo(torch.float32).eps
         self.device = device  # PyTorch GPU device
-        logging.info("Init Focal loss with gamma:{}".format(gamma))
-        return
+        logging.info(f"Init Focal loss with gamma:{gamma}")
 
     def forward(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
         """compute focal loss for pred and label
@@ -145,7 +143,6 @@ class HardTripletLoss(nn.Module):
         """
         super(HardTripletLoss, self).__init__()
         self._margin = margin
-        return
 
     def forward(self, embeddings, labels):
         """
@@ -170,7 +167,7 @@ class HardTripletLoss(nn.Module):
 
         # Combine biggest d(a, p) and smallest d(a, n) into final triplet loss
         triplet_loss = F.relu(
-            hardest_positive_dist - hardest_negative_dist + self._margin
+            hardest_positive_dist - hardest_negative_dist + self._margin,
         )
         triplet_loss = torch.mean(triplet_loss)
         return triplet_loss

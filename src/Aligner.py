@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author: liufeng
 # datetime: 2023/7/5 5:11 PM
 
@@ -9,7 +8,7 @@ import os
 
 import numpy as np
 
-from src.utils import read_lines, write_lines, line_to_dict, dict_to_line
+from src.utils import dict_to_line, line_to_dict, read_lines, write_lines
 
 
 class Aligner:
@@ -21,7 +20,6 @@ class Aligner:
             embed = np.load(data_path)
             utt_name = name.replace(".npy", "")
             self._memory_data[utt_name] = embed
-        return
 
     def _get_shift_frame(self, data_i, data_j):
         assert data_i["song"] == data_j["song"]
@@ -56,7 +54,7 @@ class Aligner:
 
         count_delta = dict()
         for _, _, z in res:
-            if z not in count_delta.keys():
+            if z not in count_delta:
                 count_delta[z] = 0
             count_delta[z] += 1
         count_delta_lst = list(count_delta.items())
@@ -79,8 +77,7 @@ class Aligner:
                                 "utt_i": local_data_i["utt"],
                                 "utt_j": local_data_j["utt"],
                                 "shift_frame_i_to_j": shift_frame,
-                            }
-                        )
+                            },
+                        ),
                     )
         write_lines(output_path, dump_lines)
-        return

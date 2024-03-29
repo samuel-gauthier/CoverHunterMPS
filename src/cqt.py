@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2022/7/7 3:22 PM
 # software: PyCharm
@@ -59,10 +58,9 @@ class PyCqt:
         #                                            min_freq, max_freq)
         #    else:
         self._kernel = self._compute_cqt_kernel(
-            sample_rate, octave_resolution, min_freq, max_freq
+            sample_rate, octave_resolution, min_freq, max_freq,
         )
-        logging.info("CQT kernel shape: {}".format(np.shape(self._kernel)))
-        return
+        logging.info(f"CQT kernel shape: {np.shape(self._kernel)}")
 
     # @staticmethod
     # def _compute_cqt_kernelMPS(
@@ -193,7 +191,7 @@ class PyCqt:
 
     @staticmethod
     def _compute_cqt_kernel(
-        sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency
+        sampling_frequency, octave_resolution, minimum_frequency, maximum_frequency,
     ):
         """
         Compute the constant-Q transform (CQT) kernel.
@@ -212,7 +210,7 @@ class PyCqt:
 
         # Compute the number of frequency channels for the CQT
         number_frequencies = round(
-            octave_resolution * np.log2(maximum_frequency / minimum_frequency)
+            octave_resolution * np.log2(maximum_frequency / minimum_frequency),
         )
 
         # Compute the window length for the FFT
@@ -221,9 +219,9 @@ class PyCqt:
             pow(
                 2,
                 np.ceil(
-                    np.log2(quality_factor * sampling_frequency / minimum_frequency)
+                    np.log2(quality_factor * sampling_frequency / minimum_frequency),
                 ),
-            )
+            ),
         )
 
         # Initialize the (complex) CQT kernel
@@ -249,7 +247,7 @@ class PyCqt:
                     * 1j
                     * quality_factor
                     * np.arange(-(window_length - 1) / 2, (window_length - 1) / 2 + 1)
-                    / window_length
+                    / window_length,
                 )
                 / window_length
             )
@@ -278,7 +276,7 @@ class PyCqt:
 
     @staticmethod
     def _compute_cqt_spec(
-        audio_signal, sampling_frequency, time_resolution, cqt_kernel
+        audio_signal, sampling_frequency, time_resolution, cqt_kernel,
     ):
         """
         Compute the constant-Q transform (CQT) spectrogram using a CQT kernel.
@@ -316,7 +314,7 @@ class PyCqt:
         for j in range(number_times):
             # Compute the magnitude CQT using the kernel
             cqt_spectrogram[:, j] = np.absolute(
-                cqt_kernel * np.fft.fft(audio_signal[i : i + fft_length])
+                cqt_kernel * np.fft.fft(audio_signal[i : i + fft_length]),
             )
             i = i + step_length
         return cqt_spectrogram
@@ -337,7 +335,7 @@ class PyCqt:
         y = signal_float
         time_resolution = int(1 / self._hop_size)
         cqt_spectrogram = self._compute_cqt_spec(
-            y, self._sample_rate, time_resolution, self._kernel
+            y, self._sample_rate, time_resolution, self._kernel,
         )
         cqt_spectrogram = cqt_spectrogram + 1e-9
         ref_value = np.max(cqt_spectrogram)

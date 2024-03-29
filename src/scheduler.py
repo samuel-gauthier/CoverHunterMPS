@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2021/7/7 10:24 AM
 # software: PyCharm
@@ -23,7 +22,7 @@ class UserDefineExponentialLR(torch.optim.lr_scheduler._LRScheduler):
     """
 
     def __init__(
-        self, optimizer, gamma, min_lr, last_epoch=-1, warmup=False, warmup_steps=5000
+        self, optimizer, gamma, min_lr, last_epoch=-1, warmup=False, warmup_steps=5000,
     ):
         self.gamma = gamma
         self.min_lr = min_lr
@@ -31,7 +30,7 @@ class UserDefineExponentialLR(torch.optim.lr_scheduler._LRScheduler):
         super(UserDefineExponentialLR, self).__init__(optimizer, last_epoch)
 
         if warmup:
-            print("Using Warmup for Learning: {}".format(warmup_steps))
+            print(f"Using Warmup for Learning: {warmup_steps}")
             self._warmup_steps = warmup_steps
             self.get_lr()
 

@@ -1,18 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2022/8/30 11:59 AM
 # software: PyCharm
 
 """ Conformer Structure from Wenet(Espnet) """
 
-from __future__ import division, absolute_import
 
 import logging
 import math
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -119,14 +115,14 @@ def add_optional_chunk_mask(
                     max_left_chunks = (max_len - 1) // chunk_size
                     num_left_chunks = torch.randint(0, max_left_chunks, (1,)).item()
         chunk_masks = subsequent_chunk_mask(
-            xs.size(1), chunk_size, num_left_chunks, xs.device
+            xs.size(1), chunk_size, num_left_chunks, xs.device,
         )  # (L, L)
         chunk_masks = chunk_masks.unsqueeze(0)  # (1, L, L)
         chunk_masks = masks & chunk_masks  # (B, L, L)
     elif static_chunk_size > 0:
         num_left_chunks = num_decoding_left_chunks
         chunk_masks = subsequent_chunk_mask(
-            xs.size(1), static_chunk_size, num_left_chunks, xs.device
+            xs.size(1), static_chunk_size, num_left_chunks, xs.device,
         )  # (L, L)
         chunk_masks = chunk_masks.unsqueeze(0)  # (1, L, L)
         chunk_masks = masks & chunk_masks  # (B, L, L)
@@ -213,14 +209,14 @@ class PositionalEncoding(torch.nn.Module):
         position = torch.arange(0, self.max_len, dtype=torch.float32).unsqueeze(1)
         div_term = torch.exp(
             torch.arange(0, self.d_model, 2, dtype=torch.float32)
-            * -(math.log(10000.0) / self.d_model)
+            * -(math.log(10000.0) / self.d_model),
         )
         self.pe[:, 0::2] = torch.sin(position * div_term)
         self.pe[:, 1::2] = torch.cos(position * div_term)
         self.pe = self.pe.unsqueeze(0)
 
     def forward(
-        self, x: torch.Tensor, offset: Union[int, torch.Tensor] = 0
+        self, x: torch.Tensor, offset: Union[int, torch.Tensor] = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Add positional encoding.
 
@@ -239,7 +235,7 @@ class PositionalEncoding(torch.nn.Module):
         return self.dropout(x), self.dropout(pos_emb)
 
     def position_encoding(
-        self, offset: Union[int, torch.Tensor], size: int, apply_dropout: bool = True
+        self, offset: Union[int, torch.Tensor], size: int, apply_dropout: bool = True,
     ) -> torch.Tensor:
         """For getting encoding in a streaming fashion
 
@@ -268,7 +264,7 @@ class PositionalEncoding(torch.nn.Module):
         else:  # for batched streaming decoding on GPU
             assert torch.max(offset) + size < self.max_len
             index = offset.unsqueeze(1) + torch.arange(0, size).to(
-                offset.device
+                offset.device,
             )  # B X T
             flag = index > 0
             # remove negative offset
@@ -294,7 +290,7 @@ class RelPositionalEncoding(PositionalEncoding):
         super().__init__(d_model, dropout_rate, max_len, reverse=True)
 
     def forward(
-        self, x: torch.Tensor, offset: Union[int, torch.Tensor] = 0
+        self, x: torch.Tensor, offset: Union[int, torch.Tensor] = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Compute positional encoding.
         Args:
@@ -318,14 +314,14 @@ class NoPositionalEncoding(torch.nn.Module):
         self.dropout = torch.nn.Dropout(p=dropout_rate)
 
     def forward(
-        self, x: torch.Tensor, offset: Union[int, torch.Tensor] = 0
+        self, x: torch.Tensor, offset: Union[int, torch.Tensor] = 0,
     ) -> Tuple[torch.Tensor, torch.Tensor]:
         """Just return zero vector for interface compatibility"""
         pos_emb = torch.zeros(1, x.size(1), self.d_model).to(x.device)
         return self.dropout(x), pos_emb
 
     def position_encoding(
-        self, offset: Union[int, torch.Tensor], size: int
+        self, offset: Union[int, torch.Tensor], size: int,
     ) -> torch.Tensor:
         return torch.zeros(1, size, self.d_model)
 
@@ -338,7 +334,7 @@ class BaseSubsampling(torch.nn.Module):
         self.subsampling_rate = 1
 
     def position_encoding(
-        self, offset: Union[int, torch.Tensor], size: int
+        self, offset: Union[int, torch.Tensor], size: int,
     ) -> torch.Tensor:
         return self.pos_enc.position_encoding(offset, size)
 
@@ -354,7 +350,7 @@ class LinearNoSubsampling(BaseSubsampling):
     """
 
     def __init__(
-        self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module
+        self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module,
     ):
         """Construct an linear object."""
         super().__init__()
@@ -402,7 +398,7 @@ class Conv2dSubsampling4(BaseSubsampling):
     """
 
     def __init__(
-        self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module
+        self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module,
     ):
         """Construct an Conv2dSubsampling4 object."""
         super().__init__()
@@ -413,7 +409,7 @@ class Conv2dSubsampling4(BaseSubsampling):
             torch.nn.ReLU(),
         )
         self.out = torch.nn.Sequential(
-            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim)
+            torch.nn.Linear(odim * (((idim - 1) // 2 - 1) // 2), odim),
         )
         self.pos_enc = pos_enc_class
         # The right context for every conv layer is computed by:
@@ -461,7 +457,7 @@ class Conv2dSubsampling8(BaseSubsampling):
     """
 
     def __init__(
-        self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module
+        self, idim: int, odim: int, dropout_rate: float, pos_enc_class: torch.nn.Module,
     ):
         """Construct an Conv2dSubsampling8 object."""
         super().__init__()
@@ -474,7 +470,7 @@ class Conv2dSubsampling8(BaseSubsampling):
             torch.nn.ReLU(),
         )
         self.linear = torch.nn.Linear(
-            odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim
+            odim * ((((idim - 1) // 2 - 1) // 2 - 1) // 2), odim,
         )
         self.pos_enc = pos_enc_class
         self.subsampling_rate = 8
@@ -533,7 +529,7 @@ class MultiHeadedAttention(nn.Module):
         self.dropout = nn.Dropout(p=dropout_rate)
 
     def forward_qkv(
-        self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor
+        self, query: torch.Tensor, key: torch.Tensor, value: torch.Tensor,
     ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
         """Transform query, key and value.
 
@@ -593,7 +589,7 @@ class MultiHeadedAttention(nn.Module):
             mask = mask[:, :, :, : scores.size(-1)]  # (batch, 1, *, time2)
             scores = scores.masked_fill(mask, -float("inf"))
             attn = torch.softmax(scores, dim=-1).masked_fill(
-                mask, 0.0
+                mask, 0.0,
             )  # (batch, head, time1, time2)
         # NOTE(xcsong): When will `if mask.size(2) > 0` be False?
         #   1. onnx(16/-1, -1/-1, 16/0)
@@ -710,7 +706,7 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         """
 
         zero_pad = torch.zeros(
-            (x.size()[0], x.size()[1], x.size()[2], 1), device=x.device, dtype=x.dtype
+            (x.size()[0], x.size()[1], x.size()[2], 1), device=x.device, dtype=x.dtype,
         )
         x_padded = torch.cat([zero_pad, x], dim=-1)
 
@@ -800,7 +796,7 @@ class RelPositionMultiHeadedAttention(MultiHeadedAttention):
         # matrix_bd = self.rel_shift(matrix_bd)
 
         scores = (matrix_ac + matrix_bd) / math.sqrt(
-            self.d_k
+            self.d_k,
         )  # (batch, head, time1, time2)
 
         return self.forward_attention(v, scores, mask), new_cache
@@ -1025,7 +1021,7 @@ class ConformerEncoderLayer(torch.nn.Module):
         if self.conv_module is not None:
             self.norm_conv = nn.LayerNorm(size, eps=1e-5)  # for the CNN module
             self.norm_final = nn.LayerNorm(
-                size, eps=1e-5
+                size, eps=1e-5,
             )  # for the final output of the block
         self.dropout = nn.Dropout(dropout_rate)
         self.size = size
@@ -1191,7 +1187,7 @@ class ConformerEncoder(torch.nn.Module):
             pos_enc_class = NoPositionalEncoding
         else:
             raise ValueError("unknown pos_enc_layer: " + pos_enc_layer_type)
-        logging.info("Pos layers - {}".format(pos_enc_layer_type))
+        logging.info(f"Pos layers - {pos_enc_layer_type}")
 
         if input_layer == "linear":
             subsampling_class = LinearNoSubsampling
@@ -1201,7 +1197,7 @@ class ConformerEncoder(torch.nn.Module):
             subsampling_class = Conv2dSubsampling8
         else:
             raise ValueError("unknown input_layer: " + input_layer)
-        logging.info("Input layers - {}".format(input_layer))
+        logging.info(f"Input layers - {input_layer}")
 
         self.global_cmvn = global_cmvn
         self.embed = subsampling_class(
@@ -1229,7 +1225,7 @@ class ConformerEncoder(torch.nn.Module):
             output_size,
             attention_dropout_rate,
         )
-        logging.info("self attn args: {}".format(encoder_selfattn_layer_args))
+        logging.info(f"self attn args: {encoder_selfattn_layer_args}")
 
         # feed-forward module definition
         positionwise_layer = PositionwiseFeedForward
@@ -1239,7 +1235,7 @@ class ConformerEncoder(torch.nn.Module):
             dropout_rate,
             activation,
         )
-        logging.info("position-wise args: {}".format(positionwise_layer_args))
+        logging.info(f"position-wise args: {positionwise_layer_args}")
 
         # convolution module definition
         convolution_layer = ConvolutionModule
@@ -1272,9 +1268,8 @@ class ConformerEncoder(torch.nn.Module):
                     concat_after,
                 )
                 for _ in range(num_blocks)
-            ]
+            ],
         )
-        return
 
     def output_size(self) -> int:
         return self._output_size
@@ -1381,7 +1376,7 @@ class ConformerEncoder(torch.nn.Module):
         chunk_size = xs.size(1)
         attention_key_size = cache_t1 + chunk_size
         pos_emb = self.embed.position_encoding(
-            offset=offset - cache_t1, size=attention_key_size
+            offset=offset - cache_t1, size=attention_key_size,
         )
         if required_cache_size < 0:
             next_cache_start = 0
@@ -1469,7 +1464,7 @@ class ConformerEncoder(torch.nn.Module):
             end = min(cur + decoding_window, num_frames)
             chunk_xs = xs[:, cur:end, :]
             (y, att_cache, cnn_cache) = self.forward_chunk(
-                chunk_xs, offset, required_cache_size, att_cache, cnn_cache
+                chunk_xs, offset, required_cache_size, att_cache, cnn_cache,
             )
             outputs.append(y)
             offset += y.size(1)
@@ -1481,7 +1476,7 @@ class ConformerEncoder(torch.nn.Module):
 def _test_model():
     device = torch.device("mps")
     model = ConformerEncoder(input_size=128, output_size=128, linear_units=128).to(
-        device
+        device,
     )
     batch_size = 4
     feat_size = 128
@@ -1498,9 +1493,7 @@ def _test_model():
     )
     out, _ = model.forward(x, xs_lens=xs_lens, decoding_chunk_size=-1)
     print(out.size())
-    return
 
 
 if __name__ == "__main__":
     _test_model()
-    pass

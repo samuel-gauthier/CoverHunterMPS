@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 
 import logging
 import random
@@ -8,14 +7,14 @@ from contextlib import nullcontext
 import numpy as np
 import torch
 
-from src.pytorch_utils import scan_and_load_checkpoint, get_lr
+from src.pytorch_utils import get_lr, scan_and_load_checkpoint
 
 # setting this to False in Apple Silicon context showed negligible impact.
 torch.backends.cudnn.benchmark = True
 
 
 def save_checkpoint(model, optimizer, step, epoch, checkpoint_dir):
-    g_checkpoint_path = "{}/g_{:08d}".format(checkpoint_dir, epoch)
+    g_checkpoint_path = f"{checkpoint_dir}/g_{epoch:08d}"
 
     if isinstance(model, torch.nn.DataParallel):
         state_dict = model.module.state_dict()
@@ -25,14 +24,13 @@ def save_checkpoint(model, optimizer, step, epoch, checkpoint_dir):
         state_dict = model.state_dict()
 
     torch.save({"generator": state_dict}, g_checkpoint_path)
-    d_checkpoint_path = "{}/do_{:08d}".format(checkpoint_dir, epoch)
+    d_checkpoint_path = f"{checkpoint_dir}/do_{epoch:08d}"
     torch.save(
         {"optim_g": optimizer.state_dict(), "steps": step, "epoch": epoch},
         d_checkpoint_path,
     )
-    logging.info("save checkpoint to {}".format(g_checkpoint_path))
-    logging.info("save step:{}, epoch:{}".format(step, epoch))
-    return
+    logging.info(f"save checkpoint to {g_checkpoint_path}")
+    logging.info(f"save step:{step}, epoch:{epoch}")
 
 
 def load_checkpoint(model, optimizer=None, checkpoint_dir=None, advanced=False):
@@ -48,22 +46,22 @@ def load_checkpoint(model, optimizer=None, checkpoint_dir=None, advanced=False):
             model.load_state_dict(model_dict)
             for k in model_dict.keys():
                 if k not in state_dict_g.keys():
-                    logging.warning("{} not be initialized".format(k))
+                    logging.warning(f"{k} not be initialized")
         else:
             model.load_state_dict(state_dict_g["generator"])
             # self.load_state_dict(state_dict_g)
 
-        logging.info("load g-model from {}".format(checkpoint_dir))
+        logging.info(f"load g-model from {checkpoint_dir}")
 
     if state_dict_do is None:
         logging.info("using init value of steps and epoch")
         step, epoch = 1, -1
     else:
         step, epoch = state_dict_do["steps"] + 1, state_dict_do["epoch"]
-        logging.info("load d-model from {}".format(checkpoint_dir))
+        logging.info(f"load d-model from {checkpoint_dir}")
         optimizer.load_state_dict(state_dict_do["optim_g"])
 
-    logging.info("step:{}, epoch:{}".format(step, epoch))
+    logging.info(f"step:{step}, epoch:{epoch}")
     return step, epoch
 
 
@@ -108,14 +106,14 @@ def train_one_epoch(
                 _loss_memory.update({"total": total_loss.item()})
 
                 if step % 100 == 0:
-                    log_info = "Steps:{:d}".format(step)
+                    log_info = f"Steps:{step:d}"
                     for k, v in _loss_memory.items():
                         if k == "lr":
-                            log_info += " lr:{:.6f}".format(v)
+                            log_info += f" lr:{v:.6f}"
                         else:
-                            log_info += " {}:{:.3f}".format(k, v)
+                            log_info += f" {k}:{v:.3f}"
                         if sw:
-                            sw.add_scalar("csi/{}".format(k), v, step)
+                            sw.add_scalar(f"csi/{k}", v, step)
                     if logger:
                         logger.info(log_info)
                 step += 1
@@ -149,24 +147,24 @@ def validate(
             if logger and j % 10 == 0:
                 logger.info(
                     "step-{} {} {} {} {}".format(
-                        j, utt[0], losses["ce_loss"].item(), anchor[0][0][0], label[0]
-                    )
+                        j, utt[0], losses["ce_loss"].item(), anchor[0][0][0], label[0],
+                    ),
                 )
 
             val_losses["count"] += 1
             for key, value in losses.items():
-                if key not in val_losses.keys():
+                if key not in val_losses:
                     val_losses[key] = 0.0
                 val_losses[key] += losses[key].item()
 
-        log_str = "{}: ".format(valid_name)
+        log_str = f"{valid_name}: "
         for key, value in val_losses.items():
             if key == "count":
                 continue
             value = value / (val_losses["count"])
-            log_str = log_str + "{}-{:.3f} ".format(key, value)
+            log_str = log_str + f"{key}-{value:.3f} "
             if sw is not None:
-                sw.add_scalar("csi_{}/{}".format(valid_name, key), value, epoch_num)
+                sw.add_scalar(f"csi_{valid_name}/{key}", value, epoch_num)
     # if logger:
     #   logger.info(log_str)
     return val_losses
@@ -193,13 +191,13 @@ def _calc_label(model, query_loader):
                 label = label_b[idx_embed]
                 assert np.shape(pred_embed) == (
                     model.get_ce_embed_length(),
-                ), "invalid embed shape:{}".format(np.shape(pred_embed))
-                if utt not in query_label.keys():
+                ), f"invalid embed shape:{np.shape(pred_embed)}"
+                if utt not in query_label:
                     query_label[utt] = label
                 else:
                     assert query_label[utt] == label
 
-                if utt not in query_pred.keys():
+                if utt not in query_pred:
                     query_pred[utt] = []
                 query_pred[utt].append((pred_label, prob))
 
@@ -227,9 +225,8 @@ def _syn_pred_label(model, valid_loader, valid_name, sw=None, epoch_num=-1):
     utt_acc = utt_right / utt_total
     acc = right / total
     if sw is not None:
-        sw.add_scalar("coi_{}/utt_acc".format(valid_name), utt_acc, epoch_num)
-        sw.add_scalar("coi_{}/acc".format(valid_name), acc, epoch_num)
+        sw.add_scalar(f"coi_{valid_name}/utt_acc", utt_acc, epoch_num)
+        sw.add_scalar(f"coi_{valid_name}/acc", acc, epoch_num)
 
-    logging.info("{} Utt Acc: {:.3f}, Total: {}".format(valid_name, utt_acc, utt_total))
-    logging.info("{} Acc: {:.3f}, Total: {}".format(valid_name, acc, total))
-    return
+    logging.info(f"{valid_name} Utt Acc: {utt_acc:.3f}, Total: {utt_total}")
+    logging.info(f"{valid_name} Acc: {acc:.3f}, Total: {total}")

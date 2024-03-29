@@ -1,18 +1,17 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author: liufeng
 # datetime: 2023/7/5 6:08 PM
 
 
+import argparse
 import os
 
 import torch
 
+from src.Aligner import Aligner
 from src.eval_testset import eval_for_map_with_feat
 from src.model import Model
-from src.utils import load_hparams, get_hparams_as_string, create_logger
-import argparse
-from src.Aligner import Aligner
+from src.utils import create_logger, get_hparams_as_string, load_hparams
 
 torch.backends.cudnn.benchmark = True
 
@@ -22,7 +21,7 @@ def _main():
     parser.add_argument("model_dir", help="coarse trained dir")
     parser.add_argument("data_path", help="input file contains init data")
     parser.add_argument(
-        "alignment_path", help="output file contains alignment information"
+        "alignment_path", help="output file contains alignment information",
     )
 
     args = parser.parse_args()
@@ -31,7 +30,7 @@ def _main():
     alignment_path = args.alignment_path
     logger = create_logger()
     hp = load_hparams(os.path.join(model_dir, "config/hparams.yaml"))
-    logger.info("{}".format(get_hparams_as_string(hp)))
+    logger.info(f"{get_hparams_as_string(hp)}")
 
     match hp["device"]:
         case "mps":
@@ -73,13 +72,12 @@ def _main():
         batch_size=64,
         logger=logger,
     )
-    logger.info("Test, map:{}".format(mean_ap))
+    logger.info(f"Test, map:{mean_ap}")
 
     # Calculate shift frames for every-two items with same label
     aligner = Aligner(os.path.join(embed_dir, "query_embed"))
     aligner.align(data_path, alignment_path)
-    logger.info("Output alignment into {}".format(alignment_path))
-    return
+    logger.info(f"Output alignment into {alignment_path}")
 
 
 if __name__ == "__main__":

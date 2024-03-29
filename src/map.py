@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2022/7/15 9:19 AM
 # software: PyCharm
@@ -76,9 +75,7 @@ def calc_map(
         if verbose > 0:
             top5_res = [x for x, _ in row][:5]
             print(
-                "Debug:: {}th, query song: {}, map: {},  rank1: {}, top5: {}".format(
-                    u, label_query[u], per_map, per_rank1, top5_res
-                )
+                f"Debug:: {u}th, query song: {label_query[u]}, map: {per_map},  rank1: {per_rank1}, top5: {top5_res}",
             )
         mean_ap += per_map
         top10 += per_top10

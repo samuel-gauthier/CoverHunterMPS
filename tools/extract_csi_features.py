@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2022/7/11 3:20 PM
 # software: PyCharm
@@ -16,18 +15,23 @@ import librosa
 import numpy as np
 import torch
 
-from src.dataset import SignalAug
 from src.cqt import PyCqt
-from src.utils import RARE_DELIMITER, load_hparams
-from src.utils import read_lines, write_lines, line_to_dict, dict_to_line
-from src.utils import remake_path_for_linux
+from src.dataset import SignalAug
+from src.utils import (
+    RARE_DELIMITER,
+    dict_to_line,
+    line_to_dict,
+    load_hparams,
+    read_lines,
+    remake_path_for_linux,
+    write_lines,
+)
 
 
 def _sort_lines_by_utt(init_path, sorted_path):
     dump_lines = read_lines(init_path, log=False)
     dump_lines = sorted(dump_lines, key=lambda x: (line_to_dict(x)["utt"]))
     write_lines(sorted_path, dump_lines, log=True)
-    return
 
 
 def _remove_dup_line(init_path, new_path):
@@ -40,9 +44,8 @@ def _remove_dup_line(init_path, new_path):
         if utt not in utt_set:
             utt_set.add(utt)
             valid_lines.append(line)
-    logging.info("Filter stage: {}->{}".format(old_line_num, len(valid_lines)))
+    logging.info(f"Filter stage: {old_line_num}->{len(valid_lines)}")
     write_lines(new_path, valid_lines)
-    return
 
 
 def _remove_invalid_line(init_path, new_path):
@@ -51,12 +54,11 @@ def _remove_invalid_line(init_path, new_path):
     for line in read_lines(init_path, log=False):
         local_data = line_to_dict(line)
         if not os.path.exists(local_data["wav"]):
-            logging.info("Unvalid data for wav path: {}".format(line))
+            logging.info(f"Unvalid data for wav path: {line}")
             continue
         dump_lines.append(line)
-    logging.info("Filter stage: {}->{}".format(old_line_num, len(dump_lines)))
+    logging.info(f"Filter stage: {old_line_num}->{len(dump_lines)}")
     write_lines(new_path, dump_lines)
-    return
 
 
 def _remove_line_with_same_dur(init_path, new_path):
@@ -66,12 +68,11 @@ def _remove_line_with_same_dur(init_path, new_path):
     for line in read_lines(init_path, log=False):
         local_data = line_to_dict(line)
         if not os.path.exists(local_data["wav"]):
-            logging.info("Unvalid data for wav path: {}".format(line))
+            logging.info(f"Unvalid data for wav path: {line}")
             continue
         dump_lines.append(line)
-    logging.info("Filter stage: {}->{}".format(old_line_num, len(dump_lines)))
+    logging.info(f"Filter stage: {old_line_num}->{len(dump_lines)}")
     write_lines(new_path, dump_lines)
-    return
 
 
 def sox_change_speed(inp_path, out_path, k):
@@ -83,13 +84,13 @@ def sox_change_speed(inp_path, out_path, k):
         subprocess.call(cmd, shell=True)
         success = os.path.exists(out_path)
         if not success:
-            logging.info("Error for sox: {}".format(cmd))
+            logging.info(f"Error for sox: {cmd}")
         return success
     except RuntimeError:
-        logging.info("RuntimeError: {}".format(cmd))
+        logging.info(f"RuntimeError: {cmd}")
         return False
     except EOFError:
-        logging.info("EOFError: {}".format(cmd))
+        logging.info(f"EOFError: {cmd}")
         return False
 
 
@@ -120,7 +121,7 @@ def _speed_aug_worker(args):
 
 def _speed_aug_parallel(init_path, aug_speed_lst, aug_path, sp_dir):
     """add items with speed argument wav"""
-    logging.info("speed factor: {}".format(aug_speed_lst))
+    logging.info(f"speed factor: {aug_speed_lst}")
     os.makedirs(sp_dir, exist_ok=True)
     total_lines = read_lines(init_path, log=False)
     dump_lines = []
@@ -137,10 +138,9 @@ def _speed_aug_parallel(init_path, aug_speed_lst, aug_path, sp_dir):
                 continue
             dump_lines.append(dict_to_line(result))
             if len(dump_lines) % 1000 == 0:
-                logging.info("{}: {}".format(len(dump_lines), dump_lines[-1]))
+                logging.info(f"{len(dump_lines)}: {dump_lines[-1]}")
 
     write_lines(aug_path, dump_lines)
-    return
 
 
 # instead of original serial function,
@@ -180,12 +180,11 @@ def _extract_cqt_parallel(init_path, out_path, cqt_dir):
             if len(dump_lines) % 1000 == 0:
                 logging.info(
                     "Extracted CQT for {} items: {}".format(
-                        len(dump_lines), result["utt"]
-                    )
+                        len(dump_lines), result["utt"],
+                    ),
                 )
 
     write_lines(out_path, dump_lines)
-    return
 
 
 ### experimental Torch-optimized MPS use for CQT ###
@@ -233,12 +232,11 @@ def _extract_cqt_parallelMPS(init_path, out_path, cqt_dir):
             if len(dump_lines) % 1000 == 0:
                 logging.info(
                     "Extracted CQT for {} items: {}".format(
-                        len(dump_lines), result["utt"]
-                    )
+                        len(dump_lines), result["utt"],
+                    ),
                 )
 
     write_lines(out_path, dump_lines)
-    return
 
 
 def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise):
@@ -254,10 +252,10 @@ def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise):
         local_data = line_to_dict(line)
         wav_path = local_data["wav"]
         local_data["utt"] = local_data["utt"] + "{}noise_{}".format(
-            RARE_DELIMITER, hp_noise["name"]
+            RARE_DELIMITER, hp_noise["name"],
         )
         local_data["feat"] = os.path.join(
-            cqt_dir, "{}.cqt.npy".format(local_data["utt"])
+            cqt_dir, "{}.cqt.npy".format(local_data["utt"]),
         )
 
         vol = random.choice(vol_lst)
@@ -278,12 +276,11 @@ def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise):
         if len(dump_lines) % 1000 == 0:
             logging.info(
                 "Process cqt for {}items: {}, vol:{}".format(
-                    len(dump_lines), local_data["utt"], vol
-                )
+                    len(dump_lines), local_data["utt"], vol,
+                ),
             )
 
     write_lines(full_path, dump_lines)
-    return
 
 
 def _add_song_id(init_path, out_path, map_path=None):
@@ -293,7 +290,7 @@ def _add_song_id(init_path, out_path, map_path=None):
     for line in read_lines(init_path, log=False):
         local_data = line_to_dict(line)
         song_name = local_data["song"]
-        if song_name not in song_id_map.keys():
+        if song_name not in song_id_map:
             song_id_map[song_name] = len(song_id_map)
         local_data["song_id"] = song_id_map[song_name]
         dump_lines.append(dict_to_line(local_data))
@@ -302,13 +299,12 @@ def _add_song_id(init_path, out_path, map_path=None):
     if map_path:
         dump_lines = []
         for k, v in song_id_map.items():
-            dump_lines.append("{} {}".format(k, v))
+            dump_lines.append(f"{k} {v}")
         write_lines(map_path, dump_lines)
-    return
 
 
 def _split_data_by_song_id(
-    input_path, train_path, val_path, test_path, test_song_ids_path, hp
+    input_path, train_path, val_path, test_path, test_song_ids_path, hp,
 ):
     """
     Splits data into train and test sets based on song IDs using stratified sampling.
@@ -361,7 +357,7 @@ def _split_data_by_song_id(
         max(1, int(num_songs * val_only_percent)) if val_only_percent > 0 else 0
     )
     val_only_songs = random.sample(
-        list(remaining_songs.keys()), val_only_count
+        list(remaining_songs.keys()), val_only_count,
     )  # Randomly select songs for val only
     remaining_songs = {
         song_id: samples
@@ -387,14 +383,14 @@ def _split_data_by_song_id(
             min_samples = 1  # Ensure at least 1 sample in each set for remaining songs
             val_split = int(len(samples) * val_ratio)
             val_split = max(
-                min_samples, val_split
+                min_samples, val_split,
             )  # Ensure at least min_samples in val
 
             # Calculate test split points based on train ratio and minimum samples (1)
             min_samples = 1  # Ensure at least 1 sample in each set for remaining songs
             test_split = int(len(samples) * test_ratio)
             test_split = max(
-                min_samples, test_split
+                min_samples, test_split,
             )  # Ensure at least min_samples in test
 
             remaining_val_data.extend(samples[:val_split])
@@ -417,7 +413,7 @@ def _split_data_by_song_id(
         write_lines(test_path, [dict_to_line(sample) for sample in test_data])
     if len(test_only_songs) > 0:
         write_lines(
-            test_song_ids_path, [dict_to_line(song) for song in test_only_songs]
+            test_song_ids_path, [dict_to_line(song) for song in test_only_songs],
         )
 
 
@@ -499,15 +495,14 @@ def _clean_lines(full_path, clean_path):
         }
         if "feat" in local_data.keys():
             clean_data.update(
-                {"feat_len": local_data["feat_len"], "feat": local_data["feat"]}
+                {"feat_len": local_data["feat_len"], "feat": local_data["feat"]},
             )
         else:
             clean_data.update(
-                {"dur_ms": local_data["dur_ms"], "wav": local_data["wav"]}
+                {"dur_ms": local_data["dur_ms"], "wav": local_data["wav"]},
             )
         dump_lines.append(dict_to_line(clean_data))
     write_lines(clean_path, dump_lines)
-    return
 
 
 def _generate_csi_features(hp, feat_dir, start_stage, end_stage):
@@ -558,7 +553,7 @@ def _generate_csi_features(hp, feat_dir, start_stage, end_stage):
         logging.info("Stage 5: add noise and extract cqt feature")
         noise_cqt_dir = os.path.join(feat_dir, "cqt_with_noise")
         _extract_cqt_with_noise(
-            full_path, full_path, noise_cqt_dir, hp_noise={"add_noise": hp_noise}
+            full_path, full_path, noise_cqt_dir, hp_noise={"add_noise": hp_noise},
         )
 
     # assumes song titles provided in dataset.txt are unique identifiers for the parent songs
@@ -592,9 +587,8 @@ def _generate_csi_features(hp, feat_dir, start_stage, end_stage):
         test_path = os.path.join(feat_dir, "dev.txt")
         test_song_ids_path = os.path.join(feat_dir, "dev-only-song-ids.txt")
         _split_data_by_song_id(
-            full_path, train_path, val_path, test_path, test_song_ids_path, hp
+            full_path, train_path, val_path, test_path, test_song_ids_path, hp,
         )
-    return
 
 
 def _cmd():
@@ -607,9 +601,7 @@ def _cmd():
     hp = load_hparams(hp_path)
     print(hp)
     _generate_csi_features(hp, args.feat_dir, args.start_stage, args.end_stage)
-    return
 
 
 if __name__ == "__main__":
     _cmd()
-    pass

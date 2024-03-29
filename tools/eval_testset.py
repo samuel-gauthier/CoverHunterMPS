@@ -1,24 +1,23 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author: liufeng
 # datetime: 2023/3/16 3:41 PM
 
 
+import argparse
 import os
 
 import torch
 
 from src.eval_testset import eval_for_map_with_feat
 from src.model import Model
-from src.utils import load_hparams, get_hparams_as_string, create_logger, read_lines
-import argparse
+from src.utils import create_logger, get_hparams_as_string, load_hparams, read_lines
 
 torch.backends.cudnn.benchmark = True
 
 
 def _main():
     parser = argparse.ArgumentParser(
-        description="evaluate test-set with pretrained model"
+        description="evaluate test-set with pretrained model",
     )
     parser.add_argument("model_dir")
     parser.add_argument("query_path")
@@ -37,7 +36,7 @@ def _main():
         help="Path to list of song_ids reserved for test dataset for use in t-SNE plot.",
     )
     parser.add_argument(
-        "-dist_name", default="", type=str, help="Save the distance matrix to this path"
+        "-dist_name", default="", type=str, help="Save the distance matrix to this path",
     )
 
     args = parser.parse_args()
@@ -48,7 +47,7 @@ def _main():
     logger = create_logger()
 
     hp = load_hparams(os.path.join(model_dir, "config/hparams.yaml"))
-    logger.info("{}".format(get_hparams_as_string(hp)))
+    logger.info(f"{get_hparams_as_string(hp)}")
 
     match hp["device"]:  # noqa match requires Python 3.10 or later
         case "mps":
@@ -107,7 +106,6 @@ def _main():
         dist_name=args.dist_name,
     )
 
-    return
 
 
 if __name__ == "__main__":

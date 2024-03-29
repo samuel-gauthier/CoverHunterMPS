@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 
 import logging
 import math
@@ -13,7 +12,7 @@ import torch.utils.data
 from torch.utils.data.sampler import Sampler
 
 from src.cqt import shorter
-from src.utils import read_lines, line_to_dict
+from src.utils import line_to_dict, read_lines
 
 logging.basicConfig(level=logging.DEBUG, format="%(asctime)s %(levelname)s %(message)s")
 
@@ -39,15 +38,14 @@ class SignalAug:
         if "add_noise" in self._hp.keys():
             self._noise_path_lst = read_lines(hp["add_noise"]["noise_path"], log=False)
             logging.info("Noise Data path:{}".format(hp["add_noise"]["noise_path"]))
-            logging.info("Noise Data items:{}".format(len(self._noise_path_lst)))
+            logging.info(f"Noise Data items:{len(self._noise_path_lst)}")
         else:
             self._noise_path_lst = None
         if "seed" not in hp.keys():
             hp["seed"] = 1234
         random.seed(hp["seed"])
         np.random.seed(hp["seed"])
-        logging.info("SignalAug hparams: {}".format(hp))
-        return
+        logging.info(f"SignalAug hparams: {hp}")
 
     @staticmethod
     def _change_volume(signal, coef):
@@ -299,8 +297,7 @@ class SpecAug:
         random.seed(hp["seed"])
         np.random.seed(hp["seed"])
         if logger:
-            logger.info("SpecAug hparams {}".format(hp))
-        return
+            logger.info(f"SpecAug hparams {hp}")
 
     @staticmethod
     def _mask_silence(feat, p_threshold=0.1):
@@ -401,7 +398,7 @@ class AudioFeatDataset(torch.utils.data.Dataset):
         self._data = []
         self._mode = mode
 
-        assert mode in ["random", "defined"], "invalid mode: {}".format(mode)
+        assert mode in ["random", "defined"], f"invalid mode: {mode}"
         if mode == "random":
             for line in data_lines:
                 local_data = line_to_dict(line)
@@ -412,7 +409,7 @@ class AudioFeatDataset(torch.utils.data.Dataset):
                         local_data["feat"],
                         local_data["feat_len"],
                         chunk_len,
-                    )
+                    ),
                 )
         elif mode == "defined":
             for line in data_lines:
@@ -426,21 +423,17 @@ class AudioFeatDataset(torch.utils.data.Dataset):
                         local_data["feat"],
                         local_data["start"],
                         chunk_len,
-                    )
+                    ),
                 )
         else:
             raise Exception("invalid mode".format())
 
         if logger:
             logger.info(
-                "Init AudioFeatDataset with mode-{}, chunk_len-{}".format(
-                    mode, chunk_len
-                )
+                f"Init AudioFeatDataset with mode-{mode}, chunk_len-{chunk_len}",
             )
             logger.info(
-                "Input dataset items: {}, valid items: {}".format(
-                    len(data_lines), self.__len__()
-                )
+                f"Input dataset items: {len(data_lines)}, valid items: {self.__len__()}",
             )
 
         if train and "spec_augmentation" in hp.keys():
@@ -450,7 +443,6 @@ class AudioFeatDataset(torch.utils.data.Dataset):
             if logger:
                 logger.info("No spec_augmentation!")
 
-        return
 
     def __len__(self):
         return len(self._data)
@@ -523,10 +515,9 @@ class MPerClassSampler(Sampler):
 
         if logger:
             logger.info(
-                "Init Sampler with Mper with {} items, and m = {}, batch_num = {}"
-                "\n".format(self._sample_length, m, self.num_iters())
+                f"Init Sampler with Mper with {self._sample_length} items, and m = {m}, batch_num = {self.num_iters()}"
+                "\n",
             )
-        return
 
     def __iter__(self):
         idx_list = [0] * self._sample_length
@@ -570,12 +561,12 @@ class MPerClassSampler(Sampler):
             local_data = line_to_dict(line)
             label = local_data["song_id"]
 
-            if label not in labels_to_indices.keys():
+            if label not in labels_to_indices:
                 labels_to_indices[label] = []
 
             labels_to_indices[label].append(index)
 
-        for k in labels_to_indices.keys():
+        for k in labels_to_indices:
             expand_indices = labels_to_indices[k].copy()
             while len(expand_indices) < self._m_per_class:
                 expand_indices.extend(labels_to_indices[k])

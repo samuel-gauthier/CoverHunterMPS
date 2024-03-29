@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2021/3/26 10:20 AM
 # software: PyCharm
@@ -10,8 +9,7 @@ import os
 
 import torch
 
-
-# todo: clean
+# TODO: clean
 
 
 def init_weights(m, mean=0.0, std=0.01):
@@ -40,7 +38,7 @@ def scan_and_load_checkpoint(cp_dir, prefix):
         return None
     model_path = sorted(cp_list)[-1]
     checkpoint_dict = torch.load(model_path, map_location="cpu")
-    print("Loading {}".format(model_path))
+    print(f"Loading {model_path}")
     return checkpoint_dict
 
 
@@ -75,7 +73,7 @@ def average_model(model_path_list, new_model_path):
     avg = None
     num = len(model_path_list)
     for path in model_path_list:
-        print("Processing {}".format(path))
+        print(f"Processing {path}")
         states = torch.load(path, map_location=torch.device("cpu"))
         if avg is None:
             avg = states
@@ -88,9 +86,8 @@ def average_model(model_path_list, new_model_path):
         if avg[k] is not None:
             avg[k] = torch.true_divide(avg[k], num)
 
-    print("Saving to {}".format(new_model_path))
+    print(f"Saving to {new_model_path}")
     torch.save(avg, new_model_path)
-    return
 
 
 if __name__ == "__main__":

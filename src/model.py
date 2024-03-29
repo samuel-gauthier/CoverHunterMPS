@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 
 import logging
-from typing import Tuple, Dict, Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 
 from src.basic_model import BasicModel
-from src.loss import HardTripletLoss, FocalLoss, CenterLoss
+from src.loss import CenterLoss, FocalLoss, HardTripletLoss
 from src.module.conformer import ConformerEncoder
 from src.module.layers import Conv1d, Linear
 from src.utils import load_hparams
@@ -36,11 +35,8 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         self._conv = Conv1d(in_channels=channels, out_channels=channels, kernel_size=1)
         self._final_layer = torch.nn.Linear(channels * 2, output_channels, bias=False)
         logging.info(
-            "Init AttentiveStatisticsPooling with {}->{}".format(
-                channels, output_channels
-            )
+            f"Init AttentiveStatisticsPooling with {channels}->{output_channels}",
         )
-        return
 
     @staticmethod
     def _compute_statistics(x: torch.Tensor, m: torch.Tensor, eps: float, dim: int = 2):
@@ -68,7 +64,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         std = std.unsqueeze(2).repeat(1, 1, L)
         attn = torch.cat([x, mean, std], dim=1)
         attn = self._conv(
-            self._tanh(self._linear(attn.transpose(1, 2)).transpose(1, 2))
+            self._tanh(self._linear(attn.transpose(1, 2)).transpose(1, 2)),
         )
 
         attn = attn.masked_fill(mask == 0, float("-inf"))  # Filter out zero-padding
@@ -78,7 +74,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         return pooled_stats
 
     def forward_with_mask(
-        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None
+        self, x: torch.Tensor, lengths: Optional[torch.Tensor] = None,
     ):
         """Calculates mean and std for a batch (input tensor).
 
@@ -156,7 +152,7 @@ class AttentiveStatisticsPooling(torch.nn.Module):
         if max_len is None:
             max_len = length.max().long().item()  # using arange to generate mask
         mask = torch.arange(max_len, device=length.device, dtype=length.dtype).expand(
-            len(length), max_len
+            len(length), max_len,
         ) < length.unsqueeze(1)
 
         if dtype is None:
@@ -197,7 +193,7 @@ class Model(BasicModel):
 
         if hp["encoder"]["output_dims"] != hp["embed_dim"]:
             self._embed_lo = torch.nn.Linear(
-                hp["encoder"]["output_dims"], hp["embed_dim"]
+                hp["encoder"]["output_dims"], hp["embed_dim"],
             )
         else:
             self._embed_lo = None
@@ -207,10 +203,10 @@ class Model(BasicModel):
         self._bottleneck.bias.requires_grad_(False)  # no shift
 
         self._pool_layer = AttentiveStatisticsPooling(
-            hp["embed_dim"], output_channels=hp["embed_dim"]
+            hp["embed_dim"], output_channels=hp["embed_dim"],
         )
         self._ce_layer = torch.nn.Linear(
-            hp["embed_dim"], hp["ce"]["output_dims"], bias=False
+            hp["embed_dim"], hp["ce"]["output_dims"], bias=False,
         )
 
         # Loss. CoverHunter doesn't use alpha
@@ -218,7 +214,7 @@ class Model(BasicModel):
             alpha = np.load(hp["ce"]["alpha"])
             alpha = 1.0 / (alpha + 1)
             alpha = alpha / np.sum(alpha)
-            logging.warning("Using alpha of {}".format(len(alpha)))
+            logging.warning(f"Using alpha of {len(alpha)}")
         else:
             alpha = None
             logging.warning("Not using alpha.")
@@ -235,8 +231,7 @@ class Model(BasicModel):
             feat_dim=hp["embed_dim"],
             device=hp["device"],
         )
-        logging.info("Model size: {:.3f}M \n".format(self.model_size() / 1000 / 1000))
-        return
+        logging.info(f"Model size: {self.model_size() / 1000 / 1000:.3f}M \n")
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         """feat[b, frame_size, feat_size] -> embed[b, embed_dim]"""
@@ -258,7 +253,7 @@ class Model(BasicModel):
 
     #  @torch.jit.ignore
     def compute_loss(
-        self, anchor: torch.Tensor, label: torch.Tensor
+        self, anchor: torch.Tensor, label: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict]:
         """compute ce and triplet loss"""
         f_t = self.forward(anchor)
@@ -332,9 +327,7 @@ def _test_model():
     label = torch.from_numpy(2000 * np.random.random([batch_size])).long().to(device)
     loss = model.compute_loss(feat, label)
     print("loss:", loss)
-    return
 
 
 if __name__ == "__main__":
     _test_model()
-    pass

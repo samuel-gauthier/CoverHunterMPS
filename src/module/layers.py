@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2022/7/18 8:00 PM
 # software: PyCharm
@@ -13,9 +12,8 @@ class Linear(torch.nn.Module):
         self.linear_layer = torch.nn.Linear(in_dim, out_dim, bias=bias)
 
         torch.nn.init.xavier_uniform_(
-            self.linear_layer.weight, gain=torch.nn.init.calculate_gain(w_init_gain)
+            self.linear_layer.weight, gain=torch.nn.init.calculate_gain(w_init_gain),
         )
-        return
 
     def forward(self, x):
         return self.linear_layer(x)
@@ -49,9 +47,8 @@ class Conv1d(torch.nn.Module):
         )
 
         torch.nn.init.xavier_uniform_(
-            self.conv.weight, gain=torch.nn.init.calculate_gain(w_init_gain)
+            self.conv.weight, gain=torch.nn.init.calculate_gain(w_init_gain),
         )
-        return
 
     def forward(self, signal):
         conv_signal = self.conv(signal)

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2022/8/26 9:57 AM
 # software: PyCharm
 
 import logging
 from abc import abstractmethod
-from typing import Tuple, Dict
+from typing import Dict, Tuple
 
 import torch
 
@@ -19,10 +18,9 @@ class BasicModel(torch.nn.Module):
         self._hp = hp
         self._epoch = 0
         self._step = 0
-        return
 
     def load_model_parameters(
-        self, model_dir, epoch_num=-1, device="mps", advanced=False
+        self, model_dir, epoch_num=-1, device="mps", advanced=False,
     ):
         """load parameters from pt model, and return model epoch,
         if advanced, model can has different variables from saved"""
@@ -30,7 +28,7 @@ class BasicModel(torch.nn.Module):
             model_path, epoch_num = get_latest_model(model_dir, "g_")
         else:
             model_path = get_model_with_epoch(model_dir, "g_", epoch_num)
-            assert model_path, "Error:model with epoch {} not found".format(epoch_num)
+            assert model_path, f"Error:model with epoch {epoch_num} not found"
 
         state_dict_g = torch.load(model_path, map_location=device)["generator"]
         if advanced:
@@ -42,22 +40,19 @@ class BasicModel(torch.nn.Module):
             self.load_state_dict(model_dict)
             for k in model_dict.keys():
                 if k not in state_dict_g.keys():
-                    logging.warning("{} not be initialized".format(k))
+                    logging.warning(f"{k} not be initialized")
         else:
             self.load_state_dict(state_dict_g)
 
         self.eval()
         self._epoch = epoch_num
         logging.info(
-            "Successful init model with epoch-{}, device:{}\n".format(
-                self._epoch, device
-            )
+            f"Successful init model with epoch-{self._epoch}, device:{device}\n",
         )
         return self._epoch
 
     def save_model_parameters(self, g_checkpoint_path):
         torch.save({"generator": self.state_dict()}, g_checkpoint_path)
-        return
 
     def get_epoch_num(self):
         return self._epoch
@@ -71,7 +66,7 @@ class BasicModel(torch.nn.Module):
 
     @abstractmethod
     def compute_loss(
-        self, anchor: torch.Tensor, label: torch.Tensor
+        self, anchor: torch.Tensor, label: torch.Tensor,
     ) -> Tuple[torch.Tensor, Dict]:
         pass
 
@@ -93,8 +88,7 @@ class BasicModel(torch.nn.Module):
     def dump_torch_script(self, dump_path):
         script_model = torch.jit.script(self)
         script_model.save(dump_path)
-        logging.info("Export model successfully, see {}".format(dump_path))
-        return
+        logging.info(f"Export model successfully, see {dump_path}")
 
 
 if __name__ == "__main__":

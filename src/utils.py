@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 # author:liufeng
 # datetime:2021/11/23 4:44 PM
 # software: PyCharm
@@ -38,8 +37,8 @@ def read_lines(data_path, log=True):
             if len(line.strip().replace(" ", "")):
                 lines.append(line.strip())
     if log:
-        print("read {} lines from {}".format(len(lines), data_path))
-        print("example(last) {}\n".format(lines[-1]))
+        print(f"read {len(lines)} lines from {data_path}")
+        print(f"example(last) {lines[-1]}\n")
     return lines
 
 
@@ -56,16 +55,15 @@ def write_lines(data_path, lines, log=True):
     """
 
     if log:
-        print("write {} lines to {}".format(len(lines), data_path))
-        print("example(last line): {}\n".format(lines[-1]))
+        print(f"write {len(lines)} lines to {data_path}")
+        print(f"example(last line): {lines[-1]}\n")
 
     if len(lines) == 0:
-        raise Exception("Fails to write blank to {}".format(data_path))
+        raise Exception(f"Fails to write blank to {data_path}")
 
     with open(data_path, "w", encoding="utf-8") as fw:
         for line in lines:
-            fw.write("{}\n".format(line))
-    return
+            fw.write(f"{line}\n")
 
 
 def line_to_dict(line):
@@ -87,7 +85,7 @@ def line_to_dict(line):
         name = data.split(":")[0]
         value = ":".join(data.split(":")[1:])
         data_dict[name] = value
-    if "len" in data_dict.keys():
+    if "len" in data_dict:
         data_dict["len"] = int(data_dict["len"])
     return data_dict
 
@@ -127,9 +125,7 @@ def read_bin_to_numpy(data_path, data_type="float"):
         else:
             raise Exception("Unvalid type")
 
-    assert np.size(mat) == frms * dim, "{}!={}x{}\ndata path:{}".format(
-        np.size(mat), frms, dim, data_path
-    )
+    assert np.size(mat) == frms * dim, f"{np.size(mat)}!={frms}x{dim}\ndata path:{data_path}"
     return np.reshape(mat, [frms, dim])
 
 
@@ -158,7 +154,6 @@ def dump_numpy_to_bin(data, data_path, data_type="float"):
     with open(data_path, "wb") as fw:
         bin_shape.tofile(fw)
         data.tofile(fw)
-    return
 
 
 def load_map(map_path, key_as_int=False, value_as_int=False, split_label=" "):
@@ -176,7 +171,7 @@ def load_map(map_path, key_as_int=False, value_as_int=False, split_label=" "):
     """
     map_dict = {}
     for line in read_lines(map_path, log=False):
-        assert len(line.split(split_label)) >= 2, "line:{}".format(line)
+        assert len(line.split(split_label)) >= 2, f"line:{line}"
         if len(line.split(split_label)) == 2:
             k, v = line.split(split_label)
         else:
@@ -204,7 +199,6 @@ def clean_and_new_dir(data_dir):
     if os.path.exists(data_dir):
         shutil.rmtree(data_dir)
     os.makedirs(data_dir)
-    return
 
 
 def generate_dir_tree(dir_name, sub_name_list, del_old=False):
@@ -260,11 +254,11 @@ def get_wav_path_from_dir(wav_dir):
 def remake_path_for_linux(path):
     """change file path for linux"""
     return (
-        path.replace(" ", "\ ")
-        .replace("(", "\(")
-        .replace(")", "\)")
-        .replace("&", "\&")
-        .replace(";", "\;")
+        path.replace(" ", r"\ ")
+        .replace("(", r"\(")
+        .replace(")", r"\)")
+        .replace("&", r"\&")
+        .replace(";", r"\;")
         .replace("'", "\\'")
     )
 
@@ -294,8 +288,7 @@ def dump_hparams(yaml_path, hparams):
     """
     with open(yaml_path, "w") as fw:
         yaml.dump(hparams, fw)
-    print("save hparams to {}".format(yaml_path))
-    return
+    print(f"save hparams to {yaml_path}")
 
 
 def get_hparams_as_string(hparams):
@@ -319,7 +312,6 @@ def save_wav(wav, path, sr, k=None):
     else:
         norm_wav = wav * 32767
     wavfile.write(path, sr, norm_wav.astype(np.int16))
-    return
 
 
 if __name__ == "__main__":

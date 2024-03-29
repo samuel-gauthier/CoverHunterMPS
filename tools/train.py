@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-# -*- coding:utf-8 -*-
 
 import argparse
 import os
@@ -10,13 +9,12 @@ import torch
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from src.scheduler import UserDefineExponentialLR
 from src.dataset import AudioFeatDataset, MPerClassSampler
-from src.trainer import save_checkpoint, load_checkpoint
-from src.trainer import train_one_epoch, validate
 from src.eval_testset import eval_for_map_with_feat
-from src.utils import load_hparams, get_hparams_as_string, create_logger
 from src.model import Model
+from src.scheduler import UserDefineExponentialLR
+from src.trainer import load_checkpoint, save_checkpoint, train_one_epoch, validate
+from src.utils import create_logger, get_hparams_as_string, load_hparams
 
 
 def _main():
@@ -38,7 +36,7 @@ def _main():
         help="Set for run eval first before train",
     )
     parser.add_argument(
-        "--debug", default=False, action="store_true", help="give more debug log"
+        "--debug", default=False, action="store_true", help="give more debug log",
     )
     parser.add_argument(
         "--runid",
@@ -74,7 +72,7 @@ def _main():
             exit()
     logger = create_logger()
 
-    logger.info("{}".format(get_hparams_as_string(hp)))
+    logger.info(f"{get_hparams_as_string(hp)}")
 
     # Initialize variables for early stopping
     best_validation_loss = float("inf")
@@ -148,7 +146,7 @@ def _main():
 
     if "dev_path" in hp.keys():
         dataset = AudioFeatDataset(
-            hp, hp["dev_path"], chunk_len=infer_len, mode=hp["mode"], logger=(logger)
+            hp, hp["dev_path"], chunk_len=infer_len, mode=hp["mode"], logger=(logger),
         )
         sampler = MPerClassSampler(
             data_path=hp["dev_path"],
@@ -190,12 +188,12 @@ def _main():
     os.makedirs(checkpoint_dir, exist_ok=True)
 
     optimizer = torch.optim.AdamW(
-        model.parameters(), hp["learning_rate"], betas=[hp["adam_b1"], hp["adam_b2"]]
+        model.parameters(), hp["learning_rate"], betas=[hp["adam_b1"], hp["adam_b2"]],
     )
     step, init_epoch = load_checkpoint(model, optimizer, checkpoint_dir, advanced=False)
 
     scheduler = UserDefineExponentialLR(
-        optimizer, gamma=hp["lr_decay"], min_lr=hp["min_lr"], last_epoch=init_epoch
+        optimizer, gamma=hp["lr_decay"], min_lr=hp["min_lr"], last_epoch=init_epoch,
     )
 
     log_path = os.path.join(model_dir, "logs", run_id)
@@ -208,7 +206,7 @@ def _main():
         if not first_eval:
             start = time.time()
             train_step = None
-            logger.info("Start to train for epoch {}".format(epoch))
+            logger.info(f"Start to train for epoch {epoch}")
             step = train_one_epoch(
                 model,
                 optimizer,
@@ -223,14 +221,12 @@ def _main():
             if epoch % hp["every_n_epoch_to_save"] == 0:
                 save_checkpoint(model, optimizer, step, epoch, checkpoint_dir)
             logger.info(
-                "Time for train epoch {} step {} is {:.1f}s\n".format(
-                    epoch, step, time.time() - start
-                )
+                f"Time for train epoch {epoch} step {step} is {time.time() - start:.1f}s\n",
             )
 
         if train_sampler_loader and epoch % hp["every_n_epoch_to_dev"] == 0:
             start = time.time()
-            logger.info("compute train-sample at epoch-{}".format(epoch))
+            logger.info(f"compute train-sample at epoch-{epoch}")
 
             res = validate(
                 model,
@@ -243,17 +239,17 @@ def _main():
             )
             logger.info(
                 "count:{}, avg_ce_loss:{}".format(
-                    res["count"], res["ce_loss"] / res["count"]
-                )
+                    res["count"], res["ce_loss"] / res["count"],
+                ),
             )
 
             logger.info(
-                "Time for train-sample is {:.1f}s\n".format(time.time() - start)
+                f"Time for train-sample is {time.time() - start:.1f}s\n",
             )
 
         if dev_loader and epoch % hp["every_n_epoch_to_dev"] == 0:
             start = time.time()
-            logger.info("compute dev at epoch-{}".format(epoch))
+            logger.info(f"compute dev at epoch-{epoch}")
             dev_res = validate(
                 model,
                 dev_loader,
@@ -266,9 +262,9 @@ def _main():
             validation_loss = dev_res["ce_loss"] / dev_res["count"]
 
             logger.info(
-                "count:{}, avg_ce_loss:{}".format(dev_res["count"], validation_loss)
+                "count:{}, avg_ce_loss:{}".format(dev_res["count"], validation_loss),
             )
-            logger.info("Time for dev is {:.1f}s\n".format(time.time() - start))
+            logger.info(f"Time for dev is {time.time() - start:.1f}s\n")
 
             if validation_loss < best_validation_loss:
                 best_validation_loss = validation_loss
@@ -284,11 +280,11 @@ def _main():
 
         for test_idx, testset_name in enumerate(valid_testlist):
             hp_test = hp[testset_name]
-            logger.info("Compute {} at epoch: {}".format(testset_name, epoch))
+            logger.info(f"Compute {testset_name} at epoch: {epoch}")
 
             start = time.time()
             save_name = hp_test.get("save_name", testset_name)
-            embed_dir = os.path.join(model_dir, "embed_{}_{}".format(epoch, save_name))
+            embed_dir = os.path.join(model_dir, f"embed_{epoch}_{save_name}")
             query_in_ref_path = hp_test.get("query_in_ref_path", None)
             mean_ap, hit_rate, _ = eval_for_map_with_feat(
                 hp,
@@ -302,22 +298,18 @@ def _main():
                 logger=logger,
             )
 
-            sw.add_scalar("mAP/{}".format(testset_name), mean_ap, epoch)
-            sw.add_scalar("hit_rate/{}".format(testset_name), hit_rate, epoch)
+            sw.add_scalar(f"mAP/{testset_name}", mean_ap, epoch)
+            sw.add_scalar(f"hit_rate/{testset_name}", hit_rate, epoch)
             logger.info(
-                "Test {}, hit_rate:{}, map:{}".format(testset_name, hit_rate, mean_ap)
+                f"Test {testset_name}, hit_rate:{hit_rate}, map:{mean_ap}",
             )
             logger.info(
-                "Time for test-{} is {} sec\n".format(
-                    testset_name, int(time.time() - start)
-                )
+                f"Time for test-{testset_name} is {int(time.time() - start)} sec\n",
             )
 
         if early_stopping_counter >= early_stopping_patience:
             logger.info(
-                "Early stopping at epoch {} due to lack of avg_ce_loss (focal aka cross-entropy loss) improvement.".format(
-                    epoch
-                )
+                f"Early stopping at epoch {epoch} due to lack of avg_ce_loss (focal aka cross-entropy loss) improvement.",
             )
             break
 
