@@ -12,8 +12,10 @@ import subprocess
 from concurrent.futures import ProcessPoolExecutor
 
 import librosa
+from nnAudio.features.cqt import CQT, CQT2010v2
 import numpy as np
 import torch
+import torchaudio
 
 from src.cqt import PyCqt
 from src.dataset import SignalAug
@@ -148,7 +150,7 @@ def _speed_aug_parallel(init_path, aug_speed_lst, aug_path, sp_dir) -> None:
 
 # instead of original serial function,
 # leverage multiple CPU cores to run multiple CQT extractions in parallel
-def _extract_cqt_worker(args):
+def _extract_cqt_worker_librosa(args):
     """worker function for _extract_cqt_parallel"""
     line, cqt_dir = args
     wav_path = line["wav"]
@@ -168,18 +170,67 @@ def _extract_cqt_worker(args):
     return line
 
 
-def _extract_cqt_parallel(init_path, out_path, cqt_dir) -> None:
+def _extract_cqt_worker_torchaudio(args):
+    line, cqt_dir, device = args
+    wav_path = line["wav"]
+    feat_path = os.path.join(cqt_dir, "{}.cqt.npy".format(line["utt"]))
+
+    # CQT seems faster on mps, and CQT2010v2 faster on cuda
+    if device == "mps":
+        transform = CQT
+    elif device == "cuda":
+        transform = CQT2010v2
+
+    if not os.path.exists(feat_path):
+        signal, sr = torchaudio.load(wav_path)
+        signal = signal.to(device)
+        signal = (
+            signal
+            / torch.max(torch.tensor(0.001).to(device), torch.max(torch.abs(signal)))
+            * 0.999
+        )
+        signal = transform(16000, hop_length=640, n_bins=96, fmin=32, verbose=False).to(
+            device
+        )(signal)
+        signal = signal + 1e-9
+        signal = signal.squeeze(0)
+
+        # Add contrast
+        ref_value_log10 = torch.log10(torch.max(signal))
+        signal = 20 * torch.log10(signal) - 20 * ref_value_log10
+
+        signal = torch.swapaxes(signal, 0, 1)
+        cqt = signal.numpy(force=True)
+        np.save(feat_path, cqt)
+        feat_len = len(cqt)
+    else:
+        feat_len = len(np.load(feat_path))
+    line["feat"] = feat_path
+    line["feat_len"] = feat_len
+    return line
+
+
+def worker(args):
+    line, cqt_dir, device = args
+
+    if device in ("mps", "cuda"):
+        return _extract_cqt_worker_torchaudio(args)
+
+    return _extract_cqt_worker_librosa(line, cqt_dir)
+
+
+def _extract_cqt_parallel(init_path, out_path, cqt_dir, device) -> None:
     logging.info("Extract CQT features")
     os.makedirs(cqt_dir, exist_ok=True)
     dump_lines = []
 
     with ProcessPoolExecutor() as executor:
         worker_args = [
-            (line_to_dict(line), cqt_dir)
+            (line_to_dict(line), cqt_dir, device)
             for line in read_lines(init_path, log=False)
         ]
 
-        for result in executor.map(_extract_cqt_worker, worker_args):
+        for result in executor.map(worker, worker_args):
             dump_lines.append(dict_to_line(result))
             if len(dump_lines) % 1000 == 0:
                 logging.info(
@@ -576,7 +627,7 @@ def _generate_csi_features(hp, feat_dir, start_stage, end_stage) -> None:
             # Got it to run w/o errors but output wasn't quite right,
             # and speed was 7 min 28 s for covers80,
             # compared to 2 min 5 s with CPU-based _extract_cqt_parallel()
-            _extract_cqt_parallel(sp_aug_path, full_path, cqt_dir)
+            _extract_cqt_parallel(sp_aug_path, full_path, cqt_dir, hp["device"])
 
     # noise augmentation was default off for CoverHunter
     hp_noise = hp.get("add_noise", None)

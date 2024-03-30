@@ -10,9 +10,10 @@ See https://ar5iv.labs.arxiv.org/html/2306.09025 for the July 2023 research pape
     1. Apple computer with an Apple M-series chip
     2. Other computer with an Nvidia GPU (including free cloud options like Google Colab)
 2. python3 (minimum version 3.10, tested on 3.11) with these libraries:
-    1. torch (compiled with CUDA or MPS or other GPU support as appropriate for your hardware)
+    1. torch torchaudio (compiled with CUDA or MPS or other GPU support as appropriate for your hardware)
     2. librosa
-    3. Optional: tensorboard
+    3. nnAudio
+    4. Optional: tensorboard
 3. sox
 
 # Usage

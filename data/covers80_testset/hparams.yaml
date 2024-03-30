@@ -1,3 +1,4 @@
+"device": "mps"
 "aug_speed_mode": [1.0]
 "train-sample_data_split": 0 # percent of training data to reserve for validation aka "train-sample"
 "train-sample_unseen": 0 # percent of song_ids from training data to reserve exclusively for validation aka "train-sample"
