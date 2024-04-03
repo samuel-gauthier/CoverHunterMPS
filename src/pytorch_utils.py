@@ -12,23 +12,26 @@ import torch
 # TODO: clean
 
 
-def init_weights(m, mean=0.0, std=0.01) -> None:
-    """init weights with normal_"""
-    classname = m.__class__.__name__
-    if classname.find("Conv") != -1:
-        m.weight.data.normal_(mean, std)
+# Unused
+# def init_weights(m, mean=0.0, std=0.01) -> None:
+#     """init weights with normal_"""
+#     classname = m.__class__.__name__
+#     if classname.find("Conv") != -1:
+#         m.weight.data.normal_(mean, std)
 
 
-def get_padding(kernel_size, dilation=1):
-    return int((kernel_size * dilation - dilation) / 2)
+# Unused
+# def get_padding(kernel_size, dilation=1):
+#     return int((kernel_size * dilation - dilation) / 2)
 
 
-def scan_last_checkpoint(cp_dir, prefix):
-    pattern = os.path.join(cp_dir, prefix + "????????")
-    cp_list = glob.glob(pattern)
-    if len(cp_list) == 0:
-        return None
-    return sorted(cp_list)[-1]
+# Unused
+# def scan_last_checkpoint(cp_dir, prefix):
+#     pattern = os.path.join(cp_dir, prefix + "????????")
+#     cp_list = glob.glob(pattern)
+#     if len(cp_list) == 0:
+#         return None
+#     return sorted(cp_list)[-1]
 
 
 def scan_and_load_checkpoint(cp_dir, prefix):
@@ -68,27 +71,24 @@ def get_lr(optimizer):
     return None
 
 
-def average_model(model_path_list, new_model_path) -> None:
-    print(model_path_list)
-    avg = None
-    num = len(model_path_list)
-    for path in model_path_list:
-        print(f"Processing {path}")
-        states = torch.load(path, map_location=torch.device("cpu"))
-        if avg is None:
-            avg = states
-        else:
-            for k in avg:
-                avg[k] += states[k]
+# Unused
+# def average_model(model_path_list, new_model_path) -> None:
+#     print(model_path_list)
+#     avg = None
+#     num = len(model_path_list)
+#     for path in model_path_list:
+#         print(f"Processing {path}")
+#         states = torch.load(path, map_location=torch.device("cpu"))
+#         if avg is None:
+#             avg = states
+#         else:
+#             for k in avg:
+#                 avg[k] += states[k]
 
-    # average
-    for k in avg:
-        if avg[k] is not None:
-            avg[k] = torch.true_divide(avg[k], num)
+#     # average
+#     for k in avg:
+#         if avg[k] is not None:
+#             avg[k] = torch.true_divide(avg[k], num)
 
-    print(f"Saving to {new_model_path}")
-    torch.save(avg, new_model_path)
-
-
-if __name__ == "__main__":
-    pass
+#     print(f"Saving to {new_model_path}")
+#     torch.save(avg, new_model_path)
