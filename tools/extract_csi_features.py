@@ -50,31 +50,33 @@ def _remove_dup_line(init_path, new_path) -> None:
     write_lines(new_path, valid_lines)
 
 
-def _remove_invalid_line(init_path, new_path) -> None:
-    old_line_num = len(read_lines(init_path, log=False))
-    dump_lines = []
-    for line in read_lines(init_path, log=False):
-        local_data = line_to_dict(line)
-        if not os.path.exists(local_data["wav"]):
-            logging.info(f"Unvalid data for wav path: {line}")
-            continue
-        dump_lines.append(line)
-    logging.info(f"Filter stage: {old_line_num}->{len(dump_lines)}")
-    write_lines(new_path, dump_lines)
+# Unused
+# def _remove_invalid_line(init_path, new_path) -> None:
+#     old_line_num = len(read_lines(init_path, log=False))
+#     dump_lines = []
+#     for line in read_lines(init_path, log=False):
+#         local_data = line_to_dict(line)
+#         if not os.path.exists(local_data["wav"]):
+#             logging.info(f"Unvalid data for wav path: {line}")
+#             continue
+#         dump_lines.append(line)
+#     logging.info(f"Filter stage: {old_line_num}->{len(dump_lines)}")
+#     write_lines(new_path, dump_lines)
 
 
-def _remove_line_with_same_dur(init_path, new_path) -> None:
-    """remove line with same song-id and same dur-ms"""
-    old_line_num = len(read_lines(init_path, log=False))
-    dump_lines = []
-    for line in read_lines(init_path, log=False):
-        local_data = line_to_dict(line)
-        if not os.path.exists(local_data["wav"]):
-            logging.info(f"Unvalid data for wav path: {line}")
-            continue
-        dump_lines.append(line)
-    logging.info(f"Filter stage: {old_line_num}->{len(dump_lines)}")
-    write_lines(new_path, dump_lines)
+# Unused
+# def _remove_line_with_same_dur(init_path, new_path) -> None:
+#     """remove line with same song-id and same dur-ms"""
+#     old_line_num = len(read_lines(init_path, log=False))
+#     dump_lines = []
+#     for line in read_lines(init_path, log=False):
+#         local_data = line_to_dict(line)
+#         if not os.path.exists(local_data["wav"]):
+#             logging.info(f"Unvalid data for wav path: {line}")
+#             continue
+#         dump_lines.append(line)
+#     logging.info(f"Filter stage: {old_line_num}->{len(dump_lines)}")
+#     write_lines(new_path, dump_lines)
 
 
 def sox_change_speed(inp_path, out_path, k):
