@@ -243,59 +243,6 @@ def _extract_cqt_parallel(init_path, out_path, cqt_dir, device) -> None:
     write_lines(out_path, dump_lines)
 
 
-### experimental Torch-optimized MPS use for CQT ###
-### not usable as of 21 Feb 2024 ###
-def _extract_cqt_workerMPS(args):
-    """worker function for _extract_cqt_parallel"""
-    line, cqt_dir, device = args
-    wav_path = line["wav"]
-    py_cqt = PyCqt(sample_rate=16000, hop_size=0.04, mps=True)
-    feat_path = os.path.join(cqt_dir, "{}.cqt.npy".format(line["utt"]))
-
-    if not os.path.exists(feat_path):
-        y, sr = librosa.load(wav_path, sr=16000)  # y is a npy ndarray
-        y = torch.from_numpy(y).to(device)
-        y = y / max(0.001, torch.max(torch.abs(y))) * 0.999
-        # compute_cqtMPS returns a Torch tensor on 'mps'
-        cqt = py_cqt.compute_cqtMPS(signal_float=y, feat_dim_first=False)
-        np.save(feat_path, cqt.cpu().numpy())
-        feat_len = len(cqt)
-    else:
-        feat_len = len(np.load(feat_path))
-    line["feat"] = feat_path
-    line["feat_len"] = feat_len
-    return line
-
-
-### experimental Torch-optimized MPS use for CQT ###
-### not usable as of 21 Feb 2024 ###
-def _extract_cqt_parallelMPS(init_path, out_path, cqt_dir) -> None:
-    logging.info("Extract CQT features")
-    assert (
-        torch.backends.mps.is_available()
-    ), "This implementation only runs on Apple M-series chips."
-    device = torch.device("mps")
-    os.makedirs(cqt_dir, exist_ok=True)
-    dump_lines = []
-    with ProcessPoolExecutor() as executor:
-        worker_args = [
-            (line_to_dict(line), cqt_dir, device)
-            for line in read_lines(init_path, log=False)
-        ]
-
-        for result in executor.map(_extract_cqt_workerMPS, worker_args):
-            dump_lines.append(dict_to_line(result))
-            if len(dump_lines) % 1000 == 0:
-                logging.info(
-                    "Extracted CQT for {} items: {}".format(
-                        len(dump_lines),
-                        result["utt"],
-                    ),
-                )
-
-    write_lines(out_path, dump_lines)
-
-
 def _extract_cqt_with_noise(init_path, full_path, cqt_dir, hp_noise) -> None:
     logging.info("Extract Cqt feature with noise argumentation")
     os.makedirs(cqt_dir, exist_ok=True)
@@ -620,13 +567,6 @@ def _generate_csi_features(hp, feat_dir, start_stage, end_stage) -> None:
         if not os.path.exists(full_path):
             new_full = True
             cqt_dir = os.path.join(feat_dir, "cqt_feat")
-            #    _extract_cqt(sp_aug_path, full_path, cqt_dir)
-            #    _extract_cqt_parallelMPS(sp_aug_path, full_path, cqt_dir)
-            # Failed attempt to do MPS acceleration of CQT.
-            # Too many unsupported demands on Torch MPS implementation as of Feb 2024
-            # Got it to run w/o errors but output wasn't quite right,
-            # and speed was 7 min 28 s for covers80,
-            # compared to 2 min 5 s with CPU-based _extract_cqt_parallel()
             _extract_cqt_parallel(sp_aug_path, full_path, cqt_dir, hp["device"])
 
     # noise augmentation was default off for CoverHunter
